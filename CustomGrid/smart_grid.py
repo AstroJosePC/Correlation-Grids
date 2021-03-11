@@ -22,14 +22,14 @@ class SmartGrid(sns.PairGrid):
             # Find y-axes matches to scale
             if y_var.lower() in log_vars:
                 print(y_var, i)
-                # Nothing guarantees me that this axes actually exists but fuck it
+                # I am picking the axes on the left column
                 ax = self.axes[i, 0]
                 ax.set_yscale('log')
         for j, (x_var) in enumerate(self.x_vars):
             # Find x-axes matches to scale
             if x_var.lower() in log_vars:
                 print(x_var, j)
-                # Same with these axes as above
+                # I am picking the axes on the bottom row
                 ax = self.axes[-1, j]
                 ax.set_xscale('log')
 
