@@ -25,6 +25,8 @@ class SmartGrid(sns.PairGrid):
                 # I am picking the axes on the left column
                 ax = self.axes[i, 0]
                 ax.set_yscale('log')
+                if self.data[y_var].max() > 0.1:
+                    ax.yaxis.set_major_formatter(plt.LogFormatter(labelOnlyBase=False))
         for j, (x_var) in enumerate(self.x_vars):
             # Find x-axes matches to scale
             if x_var.lower() in log_vars:
@@ -32,6 +34,8 @@ class SmartGrid(sns.PairGrid):
                 # I am picking the axes on the bottom row
                 ax = self.axes[-1, j]
                 ax.set_xscale('log')
+                if self.data[x_var].max() > 0.1:
+                    ax.xaxis.set_major_formatter(plt.LogFormatter(labelOnlyBase=False))
 
     def _remove_diag(self):
         # TODO: switch to ax removal instead of hiding it
