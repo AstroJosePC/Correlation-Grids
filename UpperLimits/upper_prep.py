@@ -99,6 +99,14 @@ def limit_arrays(data, x_param, y_param, x_param_err=None, y_param_err=None):
     return x_correct_params, y_correct_params, limits
 
 
+def limit_single(data, param, param_err=None):
+    params_upp_mask = upp_mask(data, param, param_err)
+    correct_params = correct_param(data, param, param_err, params_upp_mask)
+    limits = map_limits_x(params_upp_mask, kind='south')
+    return correct_params, limits
+    
+    
+
 """ 
 TODO: So... drawing double upper limits using diagonals was kinda discouraged so I may want to make a function 
 that will return the data split between normal points + upper limits, and double upper limits.
