@@ -78,13 +78,10 @@ class _RegressionPlotter_Log(_RegressionPlotter):
             from statsmodels.robust.robust_linear_model import RLM
             yhat, yhat_boots = self.fit_statsmodels(grid, RLM)
         elif self.logx and self.logy:
-            # print('executing fit_logxy')
             yhat, yhat_boots = self.fit_logxy(grid)
         elif self.logy:
-            # print('executing fit_logy')
             yhat, yhat_boots = self.fit_logy(grid)
         elif self.logx:
-            # print('executing fit_logx')
             yhat, yhat_boots = self.fit_logx(grid)
         else:
             yhat, yhat_boots = self.fit_fast(grid)
