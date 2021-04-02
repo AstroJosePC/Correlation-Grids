@@ -18,7 +18,7 @@ def regplot_log(
         x_estimator=None, x_bins=None, x_ci="ci",
         scatter=True, fit_reg=True, ci=95, n_boot=1000, units=None,
         seed=None, order=1, logistic=False, lowess=False, robust=False, linmix=False, linmix_path=None,
-        logx=False, logy=False, x_partial=None, y_partial=None,
+        logx=False, logy=False, x_partial=None, y_partial=None, delta=None, linmix_kws=None,
         truncate=True, dropna=True, x_jitter=None, y_jitter=None,
         label=None, color=None, marker="o",
         scatter_kws=None, line_kws=None, ax=None):
@@ -26,7 +26,8 @@ def regplot_log(
                                      scatter=scatter, fit_reg=fit_reg, ci=ci, n_boot=n_boot, units=units, seed=seed,
                                      order=order, logistic=logistic, lowess=lowess, robust=robust,
                                      logx=logx, logy=logy, linmix=linmix, linmix_path=linmix_path,
-                                     x_partial=x_partial, y_partial=y_partial, truncate=truncate, dropna=dropna,
+                                     x_partial=x_partial, y_partial=y_partial, delta=delta,
+                                     truncate=truncate, dropna=dropna, linmix_kws=linmix_kws,
                                      x_jitter=x_jitter, y_jitter=y_jitter, color=color, label=label)
 
     if ax is None:
@@ -50,9 +51,9 @@ class _RegressionPlotter_Log(_RegressionPlotter):
                  x_ci="ci", scatter=True, fit_reg=True, ci=95, n_boot=1000,
                  units=None, seed=None, order=1, logistic=False, lowess=False,
                  robust=False, logx=False, logy=False, linmix=False,
-                 x_partial=None, y_partial=None,
+                 x_partial=None, y_partial=None, delta=None,
                  truncate=False, dropna=True, x_jitter=None, y_jitter=None,
-                 color=None, label=None, linmix_path=None):
+                 color=None, label=None, linmix_path=None, linmix_kws=None):
 
         # Set member attributes
         self.x_estimator = x_estimator
@@ -69,6 +70,7 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         self.logx = logx
         self.logy = logy
         self.linmix = linmix
+        self.linmix_kws = linmix_kws
         self.truncate = truncate
         self.x_jitter = x_jitter
         self.y_jitter = y_jitter
@@ -80,12 +82,12 @@ class _RegressionPlotter_Log(_RegressionPlotter):
             raise ValueError("Mutually exclusive regression options.")
 
         # Extract the data vals from the arguments or passed dataframe
-        self.establish_variables(data, x=x, y=y, xerr=xerr, yerr=yerr, units=units,
+        self.establish_variables(data, x=x, y=y, xerr=xerr, yerr=yerr, delta=delta, units=units,
                                  x_partial=x_partial, y_partial=y_partial)
 
         # Drop null observations
         if dropna:
-            self.dropna("x", "y", 'xerr', 'yerr', "units", "x_partial", "y_partial")
+            self.dropna("x", "y", 'xerr', 'yerr', "delta", "units", "x_partial", "y_partial")
 
         # Regress nuisance variables out of the data
         if self.x_partial is not None:
@@ -219,7 +221,7 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         else:
             y = self.y
 
-        lm = linmix.LinMix(x, y)
+        lm = linmix.LinMix(x, y, xsig=self.xerr, ysig=self.yerr, delta=self.delta, **self.linmix_kws)
         print('created LinMix object')
         print('Starting MCMC')
         lm.run_mcmc(maxiter=self.n_boot, silent=True)
