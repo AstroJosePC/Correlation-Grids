@@ -13,16 +13,16 @@ import matplotlib.pyplot as plt
 @_deprecate_positional_args
 def regplot_log(
         *,
-        x=None, y=None,
+        x=None, y=None, xerr=None, yerr=None,
         data=None,
         x_estimator=None, x_bins=None, x_ci="ci",
         scatter=True, fit_reg=True, ci=95, n_boot=1000, units=None,
         seed=None, order=1, logistic=False, lowess=False, robust=False, linmix=False, linmix_path=None,
-        logx=False, logy=None, x_partial=None, y_partial=None,
+        logx=False, logy=False, x_partial=None, y_partial=None,
         truncate=True, dropna=True, x_jitter=None, y_jitter=None,
         label=None, color=None, marker="o",
         scatter_kws=None, line_kws=None, ax=None):
-    plotter = _RegressionPlotter_Log(x, y, data=data, x_estimator=x_estimator, x_bins=x_bins, x_ci=x_ci,
+    plotter = _RegressionPlotter_Log(x, y, xerr=None, yerr=None, data=data, x_estimator=x_estimator, x_bins=x_bins, x_ci=x_ci,
                                      scatter=scatter, fit_reg=fit_reg, ci=ci, n_boot=n_boot, units=units, seed=seed,
                                      order=order, logistic=logistic, lowess=lowess, robust=robust,
                                      logx=logx, logy=logy, linmix=linmix, linmix_path=linmix_path,
@@ -46,9 +46,67 @@ class _RegressionPlotter_Log(_RegressionPlotter):
     is thus also used indirectly by `lmplot`.
     """
 
-    def __init__(self, *args, logy=None, linmix=False, linmix_path=None, **kwargs):
+    def __init__(self, x, y, data=None, xerr=None, yerr=None, x_estimator=None, x_bins=None,
+                 x_ci="ci", scatter=True, fit_reg=True, ci=95, n_boot=1000,
+                 units=None, seed=None, order=1, logistic=False, lowess=False,
+                 robust=False, logx=False, logy=False, linmix=False,
+                 x_partial=None, y_partial=None,
+                 truncate=False, dropna=True, x_jitter=None, y_jitter=None,
+                 color=None, label=None, linmix_path=None):
 
-        super().__init__(*args, **kwargs)
+        # Set member attributes
+        self.x_estimator = x_estimator
+        self.ci = ci
+        self.x_ci = ci if x_ci == "ci" else x_ci
+        self.n_boot = n_boot
+        self.seed = seed
+        self.scatter = scatter
+        self.fit_reg = fit_reg
+        self.order = order
+        self.logistic = logistic
+        self.lowess = lowess
+        self.robust = robust
+        self.logx = logx
+        self.truncate = truncate
+        self.x_jitter = x_jitter
+        self.y_jitter = y_jitter
+        self.color = color
+        self.label = label
+
+        # Validate the regression options:
+        if sum((order > 1, logistic, robust, lowess, logx)) > 1:
+            raise ValueError("Mutually exclusive regression options.")
+
+        # Extract the data vals from the arguments or passed dataframe
+        self.establish_variables(data, x=x, y=y, xerr=xerr, yerr=yerr, units=units,
+                                 x_partial=x_partial, y_partial=y_partial)
+
+        # Drop null observations
+        if dropna:
+            self.dropna("x", "y", 'xerr', 'yerr', "units", "x_partial", "y_partial")
+
+        # Regress nuisance variables out of the data
+        if self.x_partial is not None:
+            self.x = self.regress_out(self.x, self.x_partial)
+        if self.y_partial is not None:
+            self.y = self.regress_out(self.y, self.y_partial)
+
+        # Possibly bin the predictor variable, which implies a point estimate
+        if x_bins is not None:
+            self.x_estimator = np.mean if x_estimator is None else x_estimator
+            x_discrete, x_bins = self.bin_predictor(x_bins)
+            self.x_discrete = x_discrete
+        else:
+            self.x_discrete = self.x
+
+        # Disable regression in case of singleton inputs
+        if len(self.x) <= 1:
+            self.fit_reg = False
+
+        # Save the range of the x variable for the grid later
+        if self.fit_reg:
+            self.x_range = self.x.min(), self.x.max()
+
         self.linmix_path = linmix_path
         if self.linmix_path is not None:
             self.save_linmix = isdir(linmix_path)
