@@ -22,7 +22,7 @@ def regplot_log(
         truncate=True, dropna=True, x_jitter=None, y_jitter=None,
         label=None, color=None, marker="o",
         scatter_kws=None, line_kws=None, ax=None):
-    plotter = _RegressionPlotter_Log(x, y, xerr=None, yerr=None, data=data, x_estimator=x_estimator, x_bins=x_bins, x_ci=x_ci,
+    plotter = _RegressionPlotter_Log(x, y, xerr=xerr, yerr=yerr, data=data, x_estimator=x_estimator, x_bins=x_bins, x_ci=x_ci,
                                      scatter=scatter, fit_reg=fit_reg, ci=ci, n_boot=n_boot, units=units, seed=seed,
                                      order=order, logistic=logistic, lowess=lowess, robust=robust,
                                      logx=logx, logy=logy, linmix=linmix, linmix_path=linmix_path,
