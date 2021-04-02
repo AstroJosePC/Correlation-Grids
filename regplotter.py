@@ -67,6 +67,8 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         self.lowess = lowess
         self.robust = robust
         self.logx = logx
+        self.logy = logy
+        self.linmix = linmix
         self.truncate = truncate
         self.x_jitter = x_jitter
         self.y_jitter = y_jitter
@@ -107,6 +109,7 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         if self.fit_reg:
             self.x_range = self.x.min(), self.x.max()
 
+        # Check if path to linmix output is a proper directory
         self.linmix_path = linmix_path
         if self.linmix_path is not None:
             self.save_linmix = isdir(linmix_path)
@@ -114,8 +117,6 @@ class _RegressionPlotter_Log(_RegressionPlotter):
                 raise ValueError(f'The following directory to save linmix output does not exist: {linmix_path} ')
         else:
             self.save_linmix = False
-        self.linmix = linmix
-        self.logy = logy
 
     def fit_regression(self, ax=None, x_range=None, grid=None):
         """Fit the regression model."""
