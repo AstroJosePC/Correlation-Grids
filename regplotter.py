@@ -211,15 +211,25 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         return 10 ** yhat, 10 ** yhat_boots
 
     def fit_linmix(self, grid):
-        """Fit the model using linmix"""
+        """Fit the model using linmix and save output to file (optional)"""
         if self.logx:
             x = np.log10(self.x)
+            if self.xerr is not None:
+                xerr = (1/np.log(10)) * self.xerr / x
+            else:
+                xerr = self.xerr
         else:
             x = self.x
+            xerr = self.xerr
         if self.logy:
             y = np.log10(self.y)
+            if self.yerr is not None:
+                yerr = (1/np.log(10)) * self.yerr / y
+            else:
+                yerr = self.yerr
         else:
             y = self.y
+            yerr = self.yerr
 
         lm = linmix.LinMix(x, y, xsig=self.xerr, ysig=self.yerr, delta=self.delta, **self.linmix_kws)
         print('created LinMix object')
