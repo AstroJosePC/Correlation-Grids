@@ -2,12 +2,14 @@ import copy
 from os.path import isdir, join, isfile
 from datetime import datetime
 import numpy as np
+import seaborn as sns
 from seaborn import utils
 from seaborn.regression import _RegressionPlotter
 from seaborn._decorators import _deprecate_positional_args
 from seaborn import algorithms as algo
 from utils import linmix
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 
 @_deprecate_positional_args
@@ -20,7 +22,7 @@ def regplot_log(
         seed=None, order=1, logistic=False, lowess=False, robust=False, linmix=False, linmix_path=None,
         logx=False, logy=False, x_partial=None, y_partial=None, xdelta=None, ydelta=None, linmix_kws=None,
         truncate=True, x_jitter=None, y_jitter=None,
-        label=None, color=None, marker="o",
+        label=None, color=None, marker="o", size=50,
         scatter_kws=None, line_kws=None, ax=None):
     plotter = _RegressionPlotter_Log(x, y, xerr=xerr, yerr=yerr, data=data, x_estimator=x_estimator, x_bins=x_bins, x_ci=x_ci,
                                      scatter=scatter, fit_reg=fit_reg, ci=ci, n_boot=n_boot, units=units, seed=seed,
@@ -34,7 +36,13 @@ def regplot_log(
         ax = plt.gca()
 
     scatter_kws = {} if scatter_kws is None else copy.copy(scatter_kws)
-    scatter_kws["marker"] = marker
+
+    markers = {'upp': r'$\downarrow$', 'norm': marker}
+    sizes = {'upp': 230, 'norm': size}
+
+    scatter_kws["markers"] = markers
+    scatter_kws["sizes"] = sizes
+
     line_kws = {} if line_kws is None else copy.copy(line_kws)
     plotter.plot(ax, scatter_kws, line_kws)
     return ax
@@ -270,6 +278,47 @@ class _RegressionPlotter_Log(_RegressionPlotter):
             return 10 ** yhat, 10 ** yhat_boots
         else:
             return yhat, yhat_boots
+
+    def scatterplot(self, ax, kws):
+        """Draw the data."""
+        # Treat the line-based markers specially, explicitly setting larger
+        # linewidth than is provided by the seaborn style defaults.
+        # This would ideally be handled better in matplotlib (i.e., distinguish
+        # between edgewidth for solid glyphs and linewidth for line glyphs
+        # but this should do for now.
+        line_markers = ["1", "2", "3", "4", "+", "x", "|", "_"]
+        if self.x_estimator is None:
+            if "markers" in kws and kws["markers"]['norm'] in line_markers:
+                lw = mpl.rcParams["lines.linewidth"]
+            else:
+                lw = mpl.rcParams["lines.markeredgewidth"]
+            kws.setdefault("linewidths", lw)
+            kws.setdefault("alpha", .8)
+
+            x, y = self.scatter_data
+            if self.ydelta is not None and np.any(self.ydelta == 0):
+                # If we got upper limits, then draw using seaborn
+                detections = ['norm' if detection else 'upp' for detection in self.ydelta]
+                sns.scatterplot(x=x, y=y, style=detections, size=detections, legend=False, ax=ax, **kws)
+            else:
+                if "markers" in kws:
+                    markers = kws.pop('markers')
+                    kws.setdefault('marker', markers['norm'])
+                if 'sizes' in kws:
+                    sizes = kws.pop('sizes')
+                    kws.setdefault('s', sizes['norm'])
+                ax.scatter(x, y, **kws)
+        else:
+            # TODO abstraction
+            ci_kws = {"color": kws["color"]}
+            ci_kws["linewidth"] = mpl.rcParams["lines.linewidth"] * 1.75
+            kws.setdefault("s", 50)
+
+            xs, ys, cis = self.estimate_data
+            if [ci for ci in cis if ci is not None]:
+                for x, ci in zip(xs, cis):
+                    ax.plot([x, x], ci, **ci_kws)
+            ax.scatter(xs, ys, **kws)
 
 
 if __name__ == '__main__':
