@@ -97,10 +97,10 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         # dummy variable to drop invalid upper limits
         self._drop_upp = np.zeros(self.x.size)
         if xdelta is not None:
-            self._drop_upp[~self.xdelta.astype(bool)] = np.nan
+            self._drop_upp[~xdelta.astype(bool)] = np.nan
         # Mark y upper limits for any method other than linmix as null values; only linmix can use upper limits
         if ydelta is not None and not linmix:
-            self._drop_upp[~self.ydelta.astype(bool)] = np.nan
+            self._drop_upp[~ydelta.astype(bool)] = np.nan
         # Drop null observations
         self.dropna("x", "y", 'xerr', 'yerr', "ydelta", "units", "x_partial", "y_partial", "_drop_upp")
 
