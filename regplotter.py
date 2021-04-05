@@ -70,7 +70,7 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         self.logx = logx
         self.logy = logy
         self.linmix = linmix
-        self.linmix_kws = linmix_kws
+        self.linmix_kws = linmix_kws if linmix_kws is not None else {}
         self.truncate = truncate
         self.x_jitter = x_jitter
         self.y_jitter = y_jitter
