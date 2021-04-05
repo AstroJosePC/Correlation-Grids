@@ -21,7 +21,7 @@ def regplot_log(
         scatter=True, fit_reg=True, ci=95, n_boot=1000, units=None,
         seed=None, order=1, logistic=False, lowess=False, robust=False, linmix=False, linmix_path=None,
         logx=False, logy=False, x_partial=None, y_partial=None, xdelta=None, ydelta=None, linmix_kws=None,
-        truncate=True, x_jitter=None, y_jitter=None,
+        truncate=False, fit_xrange=None, x_jitter=None, y_jitter=None,
         label=None, color=None, marker="o", size=50,
         scatter_kws=None, line_kws=None, ax=None):
     plotter = _RegressionPlotter_Log(x, y, xerr=xerr, yerr=yerr, data=data, x_estimator=x_estimator, x_bins=x_bins, x_ci=x_ci,
@@ -44,6 +44,7 @@ def regplot_log(
     scatter_kws["sizes"] = sizes
 
     line_kws = {} if line_kws is None else copy.copy(line_kws)
+    line_kws['x_range'] = fit_xrange
     plotter.plot(ax, scatter_kws, line_kws)
     return ax
 
@@ -141,11 +142,10 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         if grid is None:
             if self.truncate:
                 x_min, x_max = self.x_range
+            elif x_range is not None:
+                x_min, x_max = x_range
             else:
-                if ax is None:
-                    x_min, x_max = x_range
-                else:
-                    x_min, x_max = ax.get_xlim()
+                x_min, x_max = ax.get_xlim()
             grid = np.linspace(x_min, x_max, 100)
         ci = self.ci
 
@@ -319,6 +319,23 @@ class _RegressionPlotter_Log(_RegressionPlotter):
                 for x, ci in zip(xs, cis):
                     ax.plot([x, x], ci, **ci_kws)
             ax.scatter(xs, ys, **kws)
+
+    def lineplot(self, ax, kws):
+        """Draw the model."""
+        # Fit the regression model
+        grid, yhat, err_bands = self.fit_regression(ax, x_range=kws.pop('x_range', None))
+        edges = grid[0], grid[-1]
+
+        # Get set default aesthetics
+        fill_color = kws["color"]
+        lw = kws.pop("lw", mpl.rcParams["lines.linewidth"] * 1.5)
+        kws.setdefault("linewidth", lw)
+
+        # Draw the regression line and confidence interval
+        line, = ax.plot(grid, yhat, **kws)
+        line.sticky_edges.x[:] = edges  # Prevent mpl from adding margin
+        if err_bands is not None:
+            ax.fill_between(grid, *err_bands, facecolor=fill_color, alpha=.15)
 
 
 if __name__ == '__main__':
