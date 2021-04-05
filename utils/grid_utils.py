@@ -48,7 +48,7 @@ def _identify_errors(data: pd.DataFrame, col_set: set = None):
 
 
 def identify_errors(data: pd.DataFrame, col_set=None):
-    column_matches = _identify_errors(data)
+    column_matches = _identify_errors(data, col_set=col_set)
 
     # validate and drop duplicated error columns
     running_cols = set()
