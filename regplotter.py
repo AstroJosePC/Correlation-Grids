@@ -86,10 +86,15 @@ class _RegressionPlotter_Log(_RegressionPlotter):
                                  x_partial=x_partial, y_partial=y_partial)
 
         # Mark x upper limits as null values; only y upper limits are allowed
+        # dummy variable to drop invalid upper limits
+        self._drop_upp = np.zeros(self.x.size)
         if xdelta is not None:
-            self.x[~xdelta.astype(bool)] = np.nan
+            self._drop_upp[~self.xdelta.astype(bool)] = np.nan
+        # Mark y upper limits for any method other than linmix as null values; only linmix can use upper limits
+        if ydelta is not None and not linmix:
+            self._drop_upp[~self.ydelta.astype(bool)] = np.nan
         # Drop null observations
-        self.dropna("x", "y", 'xerr', 'yerr', "ydelta", "units", "x_partial", "y_partial")
+        self.dropna("x", "y", 'xerr', 'yerr', "ydelta", "units", "x_partial", "y_partial", "_drop_upp")
 
         # Regress nuisance variables out of the data
         if self.x_partial is not None:
