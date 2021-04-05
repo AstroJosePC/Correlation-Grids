@@ -222,7 +222,7 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         if self.logx:
             x = np.log10(self.x)
             if self.xerr is not None:
-                xerr = (1/np.log(10)) * self.xerr / x
+                xerr = (1/np.log(10)) * self.xerr / self.x
             else:
                 xerr = self.xerr
         else:
@@ -231,7 +231,7 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         if self.logy:
             y = np.log10(self.y)
             if self.yerr is not None:
-                yerr = (1/np.log(10)) * self.yerr / y
+                yerr = (1/np.log(10)) * self.yerr / self.y
             else:
                 yerr = self.yerr
         else:
