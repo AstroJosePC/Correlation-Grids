@@ -324,24 +324,44 @@ class _RegressionPlotter_Log(_RegressionPlotter):
 if __name__ == '__main__':
     import pandas as pd
 
-    visir = pd.read_csv('Data\VISIR_merged_fluxes_TMP.csv',
-                        sep=',', skipinitialspace=True, na_values=['#NAME?'])
+    visir = pd.read_csv('Data/VISIR_merged_fluxes_TMP.csv', sep=',',
+                        skipinitialspace=True, na_values=['#NAME?'])
 
-    fig1, (ax11, ax12) = plt.subplots(nrows=2, constrained_layout=True, sharex='col')
+    visir['flux_x_corr'] = visir['flux_x'].copy()
+    upp_mask = visir['fl_err_x'] > visir['flux_x']
+    ydelta = (~upp_mask).astype(int)
+    visir.loc[upp_mask, 'flux_x_corr'] = 2 * visir['fl_err_x'][upp_mask]
+
+    fig1, (ax11, ax12) = plt.subplots(nrows=2, constrained_layout=True,)
 
     regplot_log(data=visir, x='Mstar', y='fwhm_x', ax=ax11)
     ax11.set_title('regular fit')
 
-    regplot_log(data=visir, x='Mstar', y='fwhm_x', linmix=True, ax=ax12, linmix_path='.\\test')
+    regplot_log(data=visir, x='Mstar', y='fwhm_x', linmix=True, ax=ax12, linmix_path='../test_regplot')
     ax12.set_title('linmix fit')
+    fig1.suptitle('regular vs linmix fit (linear scales)')
     plt.show()
 
-    fig2, (ax21, ax22) = plt.subplots(nrows=2, constrained_layout=True, sharex='col')
+    fig2, (ax21, ax22) = plt.subplots(nrows=2, constrained_layout=True,)
     regplot_log(data=visir, x='Mstar', y='fwhm_x', logx=True, logy=True, n_boot=10000, ax=ax21)
     ax21.set_title('regular fit')
     ax21.set(yscale='log', xscale='log')
     regplot_log(data=visir, x='Mstar', y='fwhm_x',  logx=True, logy=True, linmix=True,
-                n_boot=10000, ax=ax22, linmix_path='./Test')
+                n_boot=10000, ax=ax22, linmix_path='../test_regplot')
     ax22.set(yscale='log', xscale='log')
     ax22.set_title('linmix fit')
+    fig2.suptitle('regular vs linmix fit (log scales)')
+    plt.show()
+
+    fig3, (ax31, ax32) = plt.subplots(nrows=2, constrained_layout=True)
+    regplot_log(data=visir, x='Mstar', y='flux_x_corr', yerr='fl_err_x', ydelta=ydelta,
+                logx=True, logy=True, n_boot=10000, ax=ax31)
+    ax31.set_title('regular fit (no upper limits used)')
+    ax31.set(yscale='log', xscale='log')
+    regplot_log(data=visir, x='Mstar', y='flux_x_corr',  yerr='fl_err_x', ydelta=ydelta,
+                logx=True, logy=True, linmix=True,
+                n_boot=10000, ax=ax32, linmix_path='../test_regplot')
+    ax32.set(yscale='log', xscale='log')
+    ax32.set_title('linmix fit')
+    fig3.suptitle('regular vs linmix fit (upper limits)')
     plt.show()
