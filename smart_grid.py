@@ -1,8 +1,8 @@
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
-import matplotlib
-import numpy as np
+from tqdm import tqdm
 
 
 class SmartGrid(sns.PairGrid):
@@ -14,6 +14,25 @@ class SmartGrid(sns.PairGrid):
         if no_diag:
             self._remove_diag()
 
+    def _map_bivariate(self, func, indices, **kwargs):
+        """Draw a bivariate plot on the indicated axes."""
+        # This is a hack to handle the fact that new distribution plots don't add
+        # their artists onto the axes. This is probably superior in general, but
+        # we'll need a better way to handle it in the axisgrid functions.
+        from seaborn.distributions import histplot, kdeplot
+        if func is histplot or func is kdeplot:
+            self._extract_legend_handles = True
+
+        kws = kwargs.copy()  # Use copy as we insert other kwargs
+        for i, j in tqdm(indices, desc='Creating Grid', leave=False, unit='subplot'):
+            x_var = self.x_vars[j]
+            y_var = self.y_vars[i]
+            ax = self.axes[i, j]
+            if ax is None:  # i.e. we are in corner mode
+                continue
+            self._plot_bivariate(x_var, y_var, ax, func, **kws)
+        self._add_axis_labels()
+
     def _log_scale(self):
         # TODO: this modifies the diagonal for square grids, but I don't think it should be expected.
         log_vars = [log_var.lower() for log_var in self.log_vars]
@@ -21,7 +40,6 @@ class SmartGrid(sns.PairGrid):
         for i, (y_var) in enumerate(self.y_vars):
             # Find y-axes matches to scale
             if y_var.lower() in log_vars:
-                print(y_var, i)
                 # I am picking the axes on the left column
                 ax = self.axes[i, 0]
                 ax.set_yscale('log')
@@ -30,7 +48,6 @@ class SmartGrid(sns.PairGrid):
         for j, (x_var) in enumerate(self.x_vars):
             # Find x-axes matches to scale
             if x_var.lower() in log_vars:
-                print(x_var, j)
                 # I am picking the axes on the bottom row
                 ax = self.axes[-1, j]
                 ax.set_xscale('log')
