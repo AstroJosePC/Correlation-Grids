@@ -44,9 +44,9 @@ def regplot_log(
     scatter_kws["sizes"] = sizes
 
     line_kws = {} if line_kws is None else copy.copy(line_kws)
-    line_kws['x_range'] = fit_xrange
+    line_kws.setdefault('x_range', fit_xrange)
     plotter.plot(ax, scatter_kws, line_kws)
-    return ax
+    return ax, plotter
 
 
 class _RegressionPlotter_Log(_RegressionPlotter):
