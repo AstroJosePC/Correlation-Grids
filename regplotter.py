@@ -85,6 +85,7 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         self.y_jitter = y_jitter
         self.color = color
         self.label = label
+        self._chain = None
 
         # Validate the regression options:
         if sum((order > 1, logistic, robust, lowess, logx)) > 1:
@@ -247,10 +248,8 @@ class _RegressionPlotter_Log(_RegressionPlotter):
             yerr = self.yerr
 
         lm = linmix.LinMix(x, y, xsig=xerr, ysig=yerr, delta=self.ydelta, **self.linmix_kws)
-        print('created LinMix object')
-        print('Starting MCMC')
         lm.run_mcmc(maxiter=self.n_boot, silent=True)
-        print('Finished MCMC')
+        self._chain = lm.chain
         # Compute median values, standard deviations of results
         beta_median = np.median(lm.chain['beta'])
         alpha_median = np.median(lm.chain['alpha'])
