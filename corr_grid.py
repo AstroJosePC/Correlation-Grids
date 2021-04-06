@@ -1,3 +1,4 @@
+import copy
 from typing import Optional
 from typing import Union
 
@@ -16,7 +17,7 @@ def get_data(path: str):
 
 def regplot_log_wrap(x, y, log_vars: Optional[list] = None, err_map: Optional[dict] = None,
                      data: Optional[pd.DataFrame] = None, ranges_map: Optional[dict] = None,
-                     delta_map: Optional[dict] = None, **kwargs):
+                     delta_map: Optional[dict] = None, seed: int = 123456, **kwargs):
     logx = x.name in log_vars
     logy = y.name in log_vars
     xerr = err_map.get(x.name)
@@ -24,10 +25,10 @@ def regplot_log_wrap(x, y, log_vars: Optional[list] = None, err_map: Optional[di
     x_range = ranges_map.get(x.name)
     xdelta = delta_map.get(x.name)
     ydelta = delta_map.get(y.name)
-    linmix_kws = dict(seed=123456)
+    linmix_kws = dict(seed=seed)
 
-    regplot_log(data=data, x=x, y=y, xerr=xerr, yerr=yerr, logx=logx, logy=logy,
-                xdelta=xdelta, ydelta=ydelta, fit_xrange=x_range, linmix_kws=linmix_kws, **kwargs)
+    ax, plotter = regplot_log(data=data, x=x, y=y, xerr=xerr, yerr=yerr, logx=logx, logy=logy,
+                              xdelta=xdelta, ydelta=ydelta, fit_xrange=x_range, linmix_kws=linmix_kws, **kwargs)
 
 
 def nsq_grid(dataset: Union[pd.DataFrame, str], x_vars: list, y_vars: list, log_vars: Optional[list] = None,
