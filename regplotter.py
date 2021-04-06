@@ -1,15 +1,17 @@
 import copy
-from os.path import isdir, join, isfile
 from datetime import datetime
+from os.path import isdir, join, isfile
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from seaborn import utils
-from seaborn.regression import _RegressionPlotter
-from seaborn._decorators import _deprecate_positional_args
 from seaborn import algorithms as algo
+from seaborn import utils
+from seaborn._decorators import _deprecate_positional_args
+from seaborn.regression import _RegressionPlotter
+
 from utils import linmix
-import matplotlib.pyplot as plt
-import matplotlib as mpl
 
 
 @_deprecate_positional_args
