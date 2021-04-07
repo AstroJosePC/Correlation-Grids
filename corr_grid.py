@@ -48,7 +48,15 @@ def nsq_grid(dataset: Union[pd.DataFrame, str], x_vars: list, y_vars: list, log_
 
     regplot_kws = {} if regplot_kws is None else copy.copy(regplot_kws)
     regplot_kws.setdefault('ann_coeff', ann_coeff)
+
+    # Default grid spacing aesthetics
+    kwargs.setdefault('height', 2.0)
+    kwargs.setdefault('aspect', 1.2)
+
     g = SmartGrid(dataset, x_vars=x_vars, y_vars=y_vars, log_vars=log_vars, **kwargs)
     g.map_offdiag(regplot_log_wrap, log_vars=log_vars, err_map=error_map, ranges_map=ranges_map,
                   delta_map=delta_map, data=dataset, linmix=True, **regplot_kws)
+
+    # Call tight layout
+    g.tight_layout()
     return g, error_map
