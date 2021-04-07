@@ -53,31 +53,3 @@ def nsq_grid(dataset: Union[pd.DataFrame, str], x_vars: list, y_vars: list, log_
     g.map_offdiag(regplot_log_wrap, log_vars=log_vars, err_map=error_map, ranges_map=ranges_map,
                   delta_map=delta_map, data=dataset, linmix=True, **regplot_kws)
     return g, error_map
-
-
-if __name__ == '__main__':
-    # visir_gridkws = dict(hue='')
-
-    # TEST WITH VISIR DATASET + UPPER LIMITS
-    x_visir = ['Mstar', 'Teff']
-    y_visir = ['flux_x', 'flux_y']
-    visir_log = ['Mstar', 'Lstar', 'Teff', 'flux_x', 'flux_y', 'flux', 'fwhm_x', 'fwhm_y', 'fwhm']
-
-    g1, err_map1 = nsq_grid('Data/VISIR_merged_fluxes_TMP.csv', x_visir, y_visir, log_vars=visir_log)
-    plt.show()
-    # TEST WITH VISIR DATASET + NO UPPER LIMITS
-    y_visir = ['logLacc', 'Lstar']
-    g2, err_map2 = nsq_grid('Data/VISIR_merged_fluxes_TMP.csv', x_visir, y_visir, log_vars=visir_log)
-    plt.show()
-
-    # TEST WITH SPITZER DATASET + UPPER LIMITS
-    x_spitzer = ['MSTAR', 'TEFF']
-    y_spitzer = ['FLH2O_17', 'FLHCN']
-    spitzer_log = x_spitzer + y_spitzer
-    g3, err_map3 = nsq_grid('Data/Spitzer_ALMA_sample.csv', x_spitzer, y_spitzer, log_vars=spitzer_log)
-    plt.show()
-
-    # TEST WITH SPITZER DATASET + NO UPPER LIMITS
-    y_spitzer = ['LOGRDUST95', 'N1331']
-    g4, err_map4 = nsq_grid('Data/Spitzer_ALMA_sample.csv', x_spitzer, y_spitzer, log_vars=spitzer_log)
-    plt.show()
