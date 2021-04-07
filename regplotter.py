@@ -24,7 +24,7 @@ def regplot_log(
         seed=None, order=1, logistic=False, lowess=False, robust=False, linmix=False, linmix_path=None,
         logx=False, logy=False, x_partial=None, y_partial=None, xdelta=None, ydelta=None, linmix_kws=None,
         truncate=False, fit_xrange=None, x_jitter=None, y_jitter=None,
-        label=None, color=None, marker="o", size=50,
+        label=None, color=None, marker="o", size=50, ann_coeff=False,
         scatter_kws=None, line_kws=None, ax=None):
     plotter = _RegressionPlotter_Log(x, y, xerr=xerr, yerr=yerr, data=data, x_estimator=x_estimator, x_bins=x_bins, x_ci=x_ci,
                                      scatter=scatter, fit_reg=fit_reg, ci=ci, n_boot=n_boot, units=units, seed=seed,
@@ -47,6 +47,7 @@ def regplot_log(
 
     line_kws = {} if line_kws is None else copy.copy(line_kws)
     line_kws.setdefault('x_range', fit_xrange)
+    line_kws.setdefault('ann_coeff', ann_coeff)
     plotter.plot(ax, scatter_kws, line_kws)
     return ax, plotter
 
@@ -323,6 +324,7 @@ class _RegressionPlotter_Log(_RegressionPlotter):
 
     def lineplot(self, ax, kws):
         """Draw the model."""
+        ann_coeff = kws.pop('ann_coeff', False)
         # Fit the regression model
         grid, yhat, err_bands = self.fit_regression(ax, x_range=kws.pop('x_range', None))
         edges = grid[0], grid[-1]
@@ -337,6 +339,19 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         line.sticky_edges.x[:] = edges  # Prevent mpl from adding margin
         if err_bands is not None:
             ax.fill_between(grid, *err_bands, facecolor=fill_color, alpha=.15)
+        if ann_coeff:
+            self._ann_coeff(ax)
+
+    def _ann_coeff(self, ax):
+        if linmix and self._chain is not None:
+            corr_coeff = np.median(self._chain['corr'])
+        else:
+            import scipy.stats as stats
+            corr_coeff, _ = stats.pearsonr(self.x, self.y)
+        corr_coeff = round(corr_coeff, 2)
+
+        ax.text(s=f' coeff: {corr_coeff}', x=0.05, y=0.95, transform=ax.transAxes,
+                bbox={'boxstyle': 'round', 'pad': 0.25, 'facecolor': 'white', 'edgecolor': 'gray'})
 
 
 if __name__ == '__main__':
