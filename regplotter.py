@@ -278,9 +278,11 @@ class _RegressionPlotter_Log(_RegressionPlotter):
                 print(f'WARNING: Overwriting the following file: {filepath}')
             pd.DataFrame.from_records(lm.chain[cols]).to_csv(filepath, index=False)
         if self.logy:
-            return 10 ** yhat, 10 ** yhat_boots
-        else:
-            return yhat, yhat_boots
+            np.seterr(over='ignore')
+            yhat_boots = 10 ** yhat_boots
+            np.seterr(over='warn')
+            yhat = 10 ** yhat
+        return yhat, yhat_boots
 
     def scatterplot(self, ax, kws):
         """Draw the data."""
