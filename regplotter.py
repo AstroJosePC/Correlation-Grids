@@ -5,13 +5,14 @@ from os.path import isdir, join, isfile
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from seaborn import algorithms as algo
 from seaborn import utils
 from seaborn._decorators import _deprecate_positional_args
 from seaborn.regression import _RegressionPlotter
 
-from utils import linmix
+from utils import linmix as linmix_method
 
 
 @_deprecate_positional_args
@@ -250,7 +251,7 @@ class _RegressionPlotter_Log(_RegressionPlotter):
             y = self.y
             yerr = self.yerr
 
-        lm = linmix.LinMix(x, y, xsig=xerr, ysig=yerr, delta=self.ydelta, **self.linmix_kws)
+        lm = linmix_method.LinMix(x, y, xsig=xerr, ysig=yerr, delta=self.ydelta, **self.linmix_kws)
         lm.run_mcmc(maxiter=self.n_boot, silent=True)
         self._chain = lm.chain
         # Compute median values, standard deviations of results
@@ -355,7 +356,6 @@ class _RegressionPlotter_Log(_RegressionPlotter):
 
 
 if __name__ == '__main__':
-    import pandas as pd
 
     visir = pd.read_csv('Data/VISIR_merged_fluxes_TMP.csv', sep=',',
                         skipinitialspace=True, na_values=['#NAME?'])
