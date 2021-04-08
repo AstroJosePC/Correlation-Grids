@@ -31,20 +31,15 @@ def regplot_log_wrap(x, y, log_vars: Optional[list] = None, err_map: Optional[di
 
 
 def nsq_grid(dataset: Union[pd.DataFrame, str], x_vars: list, y_vars: list, log_vars: Optional[list] = None,
+             error_map: Optional[dict] = None, delta_map: Optional[dict] = None,
              regplot_kws: Optional[dict] = None, ann_coeff: bool = True, **kwargs):
     if isinstance(dataset, str):
         dataset = get_data(dataset)
     else:
         dataset = dataset.copy()
     all_vars = x_vars + y_vars
-    error_map = identify_errors(dataset, col_set=all_vars)
-    ranges_map = {var: (np.nanmin(dataset[var]), np.nanmax(dataset[var])) for var in all_vars}
-
-    delta_map = {}
-    for col, err_col in error_map.items():
-        upp_mask = dataset[err_col] > dataset[col]
-        delta_map[col] = (~upp_mask).astype(int)
-        dataset.loc[upp_mask, col] = 2 * dataset[err_col][upp_mask]
+    error_map = parse_err_map(dataset, error_map, col_set=all_vars)
+    ranges_map = {var: (np.nanmin(dataset[var]), np.nanmax(dataset[var])) for var in x_vars}
 
     regplot_kws = {} if regplot_kws is None else copy.copy(regplot_kws)
     regplot_kws.setdefault('ann_coeff', ann_coeff)
