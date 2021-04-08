@@ -344,7 +344,7 @@ class _RegressionPlotter_Log(_RegressionPlotter):
             self._ann_coeff(ax)
 
     def _ann_coeff(self, ax):
-        if linmix and self._chain is not None:
+        if self.linmix and self._chain is not None:
             corr_coeff = np.median(self._chain['corr'])
         else:
             import scipy.stats as stats
