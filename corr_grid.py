@@ -60,3 +60,59 @@ def nsq_grid(dataset: Union[pd.DataFrame, str], x_vars: list, y_vars: list, log_
     # Call tight layout
     g.tight_layout()
     return g, error_map
+
+
+def get_flux_upps(data: pd.DataFrame, error_map: Optional[dict] = None):
+    cols = identify_flux(data)
+    error_map = parse_err_map(data, error_map, col_set=cols)
+    for col in cols:
+        err_col = error_map[col]
+        umask = data[err_col] > data[col]
+        yield col, err_col, umask
+
+
+def flux_prep(data: pd.DataFrame, error_map: Optional[dict] = None):
+    """
+    Pre-processing function for VISIR/Spitzer datasets
+
+    :param data: dataset
+    :param error_map: error map dictionary
+    :return: delta map
+    """
+    dmap = {}
+    for col, err_col, upp_mask in get_flux_upps(data, error_map):
+        dmap[col] = (~upp_mask).astype(int)
+        data.loc[upp_mask, col] = 2 * data[err_col][upp_mask]
+    return dmap
+
+
+def identify_flux(data: pd.DataFrame):
+    return [col for col in data if _is_flux(col)]
+
+
+def _is_flux(col: str):
+    cl = col.lower()
+    return 'err' not in cl and 'error' not in cl and cl.startswith('fl') or 'flux' in cl
+
+
+def parse_err_map(data: pd.DataFrame, err_map: Optional[dict] = None, col_set: list = None):
+    if err_map is None:
+        return identify_errors(data, col_set)
+    elif isinstance(err_map, dict):
+        return err_map
+    else:
+        raise ValueError(f'Unexpected err_map input: {err_map} ')
+
+
+def fluxes_grid(dataset: Union[pd.DataFrame, str], x_vars: list, y_vars: list, log_vars: Optional[list] = None,
+                regplot_kws: Optional[dict] = None, ann_coeff: bool = True, **kwargs):
+    if isinstance(dataset, str):
+        dataset = get_data(dataset)
+    else:
+        dataset = dataset.copy()
+
+    # Data Prep
+    delta_map = flux_prep(dataset)
+    # Generate Grid
+    nsq_grid(dataset, x_vars, y_vars, log_vars=log_vars, delta_map=delta_map,
+             regplot_kws=regplot_kws, ann_coeff=ann_coeff, **kwargs)
