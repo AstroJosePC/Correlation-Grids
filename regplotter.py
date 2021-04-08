@@ -98,17 +98,9 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         # Extract the data vals from the arguments or passed dataframe
         self.establish_variables(data, x=x, y=y, xerr=xerr, yerr=yerr, ydelta=ydelta, units=units,
                                  x_partial=x_partial, y_partial=y_partial)
-
-        # Mark x upper limits as null values; only y upper limits are allowed
-        # dummy variable to drop invalid upper limits
-        self._drop_upp = np.zeros(self.x.size)
-        if xdelta is not None:
-            self._drop_upp[~xdelta.astype(bool)] = np.nan
-        # Mark y upper limits for any method other than linmix as null values; only linmix can use upper limits
-        if ydelta is not None and not linmix:
-            self._drop_upp[~ydelta.astype(bool)] = np.nan
-        # Drop null observations
-        self.dropna("x", "y", 'xerr', 'yerr', "ydelta", "units", "x_partial", "y_partial", "_drop_upp")
+        # Filter out bad data
+        self.filter_out("x", "y", 'xerr', 'yerr', "ydelta", "units", "x_partial", "y_partial",
+                        xdelta=xdelta, ydelta=ydelta)
 
         # Regress nuisance variables out of the data
         if self.x_partial is not None:
@@ -140,6 +132,38 @@ class _RegressionPlotter_Log(_RegressionPlotter):
                 raise ValueError(f'The following directory to save linmix output does not exist: {linmix_path} ')
         else:
             self.save_linmix = False
+
+    def filter_out(self, *vars, xdelta=None, ydelta=None):
+        # Dummy variable to drop invalid upper limits
+        drop_upp = np.zeros(self.x.size)
+
+        # Remove x non-detections: only y non-detecitons are allowed!
+        if xdelta is not None:
+            drop_upp[~xdelta.astype(bool)] = np.nan
+        # Remove x errors equal to zero; they make no sense!?
+        if self.xerr is not None:
+            drop_upp[self.xerr == 0.0] = np.nan
+
+        # Remove x errors equal to zero for detections
+        if self.yerr is not None:
+            to_drop = self.yerr == 0.0
+            if ydelta is not None:
+                detect = ydelta.astype(bool)
+                to_drop = to_drop & detect
+            drop_upp[to_drop] = np.nan
+
+        # Remove y non-detections for methods other than linmix
+        if not self.linmix and ydelta is not None:
+            drop_upp[~ydelta.astype(bool)] = np.nan
+
+        # Drop null observations, and those marked above
+        vals = [getattr(self, var) for var in vars]
+        vals = [v for v in vals if v is not None] + [drop_upp]
+        not_na = np.all(np.column_stack([pd.notnull(v) for v in vals]), axis=1)
+        for var in vars:
+            val = getattr(self, var)
+            if val is not None:
+                setattr(self, var, val[not_na])
 
     def fit_regression(self, ax=None, x_range=None, grid=None):
         """Fit the regression model."""
