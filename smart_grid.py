@@ -33,7 +33,7 @@ class SmartGrid(sns.PairGrid):
             self._extract_legend_handles = True
 
         kws = kwargs.copy()  # Use copy as we insert other kwargs
-        for i, j in tqdm(indices, desc='Creating Grid', leave=False, unit='subplot'):
+        for i, j in tqdm(indices, desc='Creating Grid', leave=True, unit='subplot'):
             x_var = self.x_vars[j]
             y_var = self.y_vars[i]
             ax = self.axes[i, j]
