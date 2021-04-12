@@ -5,6 +5,15 @@ import seaborn as sns
 from tqdm import tqdm
 
 
+class NewFormatter(plt.LogFormatter):
+    def _num_to_string(self, x, vmin, vmax):
+        if x > 10000:
+            s = '%1.0e' % x
+        else:
+            s = self._pprint_val(x, vmax - vmin)
+        return s
+
+
 class SmartGrid(sns.PairGrid):
     def __init__(self, data, *args, log_vars=None, no_diag=False, **kwargs):
         super(SmartGrid, self).__init__(data, *args, **kwargs)
@@ -44,7 +53,7 @@ class SmartGrid(sns.PairGrid):
                 ax = self.axes[i, 0]
                 ax.set_yscale('log')
                 if self.data[y_var].max() > 0.1:
-                    ax.yaxis.set_major_formatter(plt.LogFormatter(labelOnlyBase=False))
+                    ax.yaxis.set_major_formatter(NewFormatter(labelOnlyBase=False, minor_thresholds=(1.2, 0.5)))
         for j, (x_var) in enumerate(self.x_vars):
             # Find x-axes matches to scale
             if x_var.lower() in log_vars:
@@ -52,7 +61,7 @@ class SmartGrid(sns.PairGrid):
                 ax = self.axes[-1, j]
                 ax.set_xscale('log')
                 if self.data[x_var].max() > 0.1:
-                    ax.xaxis.set_major_formatter(plt.LogFormatter(labelOnlyBase=False))
+                    ax.xaxis.set_major_formatter(NewFormatter(labelOnlyBase=False, minor_thresholds=(0.8, 0.5)))
 
     def _remove_diag(self):
         # TODO: switch to ax removal instead of hiding it
