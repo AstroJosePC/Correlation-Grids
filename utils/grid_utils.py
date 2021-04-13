@@ -1,4 +1,5 @@
 from difflib import SequenceMatcher
+
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_string_dtype
@@ -9,7 +10,7 @@ def similar(a, b):
     return SequenceMatcher(None, a, b).ratio()
 
 
-def similarity_func(c, a):
+def similar2err(c, a):
     # specific function for error column matching
     if a.startswith('err'):
         return similar('err ' + c, a)
@@ -37,7 +38,7 @@ def _identify_errors(data: pd.DataFrame, col_set: set = None):
         adjacent = columns[new_idx]
 
         # find similarity for each adjacent column to col
-        similarities = [similarity_func(low_col, adj.lower()) for adj in adjacent]
+        similarities = [similar2err(low_col, adj.lower()) for adj in adjacent]
         err_idx = np.array(similarities).argmax()
         similarity_val = similarities[err_idx]
         err_col = adjacent[err_idx]
