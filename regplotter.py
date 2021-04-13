@@ -375,9 +375,8 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         else:
             import scipy.stats as stats
             corr_coeff, _ = stats.pearsonr(self.x, self.y)
-        corr_coeff = round(corr_coeff, 2)
 
-        ax.text(s=f' coeff: {corr_coeff}', x=0.05, y=0.95, transform=ax.transAxes,
+        ax.text(s=f' coeff: {corr_coeff:.2f}', x=0.05, y=0.95, transform=ax.transAxes,
                 bbox={'boxstyle': 'round', 'pad': 0.25, 'facecolor': 'white', 'edgecolor': 'gray'})
 
 
