@@ -53,7 +53,9 @@ class SmartGrid(sns.PairGrid):
                 ax = self.axes[i, 0]
                 ax.set_yscale('log')
                 if self.data[y_var].max() > 0.1:
-                    ax.yaxis.set_major_formatter(NewFormatter(labelOnlyBase=False, minor_thresholds=(1.2, 0.5)))
+                    formatter_y = NewFormatter(labelOnlyBase=False, minor_thresholds=(1.2, 0.5))
+                    ax.yaxis.set_major_formatter(formatter_y)
+                    ax.yaxis.set_minor_formatter(formatter_y)
         for j, (x_var) in enumerate(self.x_vars):
             # Find x-axes matches to scale
             if x_var.lower() in log_vars:
@@ -61,7 +63,9 @@ class SmartGrid(sns.PairGrid):
                 ax = self.axes[-1, j]
                 ax.set_xscale('log')
                 if self.data[x_var].max() > 0.1:
-                    ax.xaxis.set_major_formatter(NewFormatter(labelOnlyBase=False, minor_thresholds=(0.8, 0.5)))
+                    formatter_x = NewFormatter(labelOnlyBase=False, minor_thresholds=(0.8, 0.5))
+                    ax.xaxis.set_major_formatter(formatter_x)
+                    ax.xaxis.set_minor_formatter(formatter_x)
 
     def _remove_diag(self):
         # TODO: switch to ax removal instead of hiding it
@@ -109,7 +113,7 @@ if __name__ == '__main__':
     y_variables = ['flux_x', 'flux_y', 'flux', 'fwhm_x', 'fwhm_y', 'fwhm']
 
     err_map = {'flux_x': 'fl_err_x', 'flux_y': 'fl_err_y', 'flux': 'fl_err'}
-    ranges_map = {var: (np.nanmin(visir[var]), np.nanmax(visir[var])) for var in x_variables+y_variables}
+    ranges_map = {var: (np.nanmin(visir[var]), np.nanmax(visir[var])) for var in x_variables + y_variables}
     plot_log = ['Mstar', 'Lstar', 'Teff', 'flux_x', 'flux_y', 'flux', 'fwhm_x', 'fwhm_y', 'fwhm']
 
     delta_map = {}
