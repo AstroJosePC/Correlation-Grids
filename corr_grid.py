@@ -1,5 +1,5 @@
-import copy
-from typing import Optional
+from copy import copy as copy_obj
+from typing import Optional, List
 from typing import Union
 
 import numpy as np
@@ -7,7 +7,7 @@ import pandas as pd
 
 from regplotter import regplot_log
 from smart_grid import SmartGrid
-from utils.grid_utils import identify_errors
+from utils.grid_utils import identify_errors, similar
 
 
 def get_data(path: str) -> pd.DataFrame:
@@ -32,16 +32,16 @@ def regplot_log_wrap(x, y, log_vars: Optional[list] = None, err_map: Optional[di
 
 def nsq_grid(dataset: Union[pd.DataFrame, str], x_vars: list, y_vars: list, log_vars: Optional[list] = None,
              error_map: Optional[dict] = None, delta_map: Optional[dict] = None,
-             regplot_kws: Optional[dict] = None, ann_coeff: bool = True, **kwargs):
+             regplot_kws: Optional[dict] = None, ann_coeff: bool = True, copy: bool = True, **kwargs):
     if isinstance(dataset, str):
         dataset = get_data(dataset)
-    else:
+    elif copy:
         dataset = dataset.copy()
     all_vars = x_vars + y_vars
     error_map = parse_err_map(dataset, error_map, col_set=all_vars)
     ranges_map = {var: (np.nanmin(dataset[var]), np.nanmax(dataset[var])) for var in x_vars}
 
-    regplot_kws = {} if regplot_kws is None else copy.copy(regplot_kws)
+    regplot_kws = {} if regplot_kws is None else copy_obj(regplot_kws)
     regplot_kws.setdefault('ann_coeff', ann_coeff)
 
     # Default grid spacing aesthetics
@@ -113,4 +113,4 @@ def fluxes_grid(dataset: Union[pd.DataFrame, str], x_vars: list, y_vars: list, l
     delta_map = flux_prep(dataset)
     # Generate Grid
     nsq_grid(dataset, x_vars, y_vars, log_vars=log_vars, delta_map=delta_map,
-             regplot_kws=regplot_kws, ann_coeff=ann_coeff, **kwargs)
+             regplot_kws=regplot_kws, ann_coeff=ann_coeff, copy=False, **kwargs)
