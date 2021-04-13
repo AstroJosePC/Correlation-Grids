@@ -10,7 +10,7 @@ from smart_grid import SmartGrid
 from utils.grid_utils import identify_errors
 
 
-def get_data(path: str):
+def get_data(path: str) -> pd.DataFrame:
     return pd.read_csv(path, sep=',', skipinitialspace=True, na_values=['#NAME?'])
 
 
@@ -61,8 +61,8 @@ def get_flux_upps(data: pd.DataFrame, error_map: Optional[dict] = None):
     cols = identify_flux(data)
     error_map = parse_err_map(data, error_map, col_set=cols)
     for col in cols:
-        err_col = error_map[col]
-        umask = data[err_col] > data[col]
+        err_col: str = error_map[col]
+        umask: pd.Series = data[err_col] > data[col]
         yield col, err_col, umask
 
 
@@ -81,8 +81,11 @@ def flux_prep(data: pd.DataFrame, error_map: Optional[dict] = None):
     return dmap
 
 
-def identify_flux(data: pd.DataFrame):
-    return [col for col in data if _is_flux(col)]
+def identify_flux(data: pd.DataFrame, subset: Optional[list] = None) -> List[str]:
+    if subset is not None:
+        return [col for col in data if _is_flux(col) if col in subset]
+    else:
+        return [col for col in data if _is_flux(col)]
 
 
 def _is_flux(col: str):
@@ -90,7 +93,7 @@ def _is_flux(col: str):
     return 'err' not in cl and 'error' not in cl and cl.startswith('fl') or 'flux' in cl
 
 
-def parse_err_map(data: pd.DataFrame, err_map: Optional[dict] = None, col_set: list = None):
+def parse_err_map(data: pd.DataFrame, err_map: Optional[dict] = None, col_set: list = None) -> dict:
     if err_map is None:
         return identify_errors(data, col_set)
     elif isinstance(err_map, dict):
