@@ -98,25 +98,42 @@ def flux_prep(data: pd.DataFrame, x_vars: list, y_vars: list, log_vars: list, er
     # Get column that looks like distance
     dist = _dist_col(data)
     for col, err_col, upp_mask in _flux_upps(data, error_map, x_vars + y_vars):
+        # Generate new column name for luminosities
+        lum_col = re.sub(r'[_ ]?fl(ux)?[_ ]?', _sub_lum, col, flags=re.I)
+        lum_err_col = re.sub(r'[_ ]?fl(ux)?[_ ]?', _sub_lum, err_col, flags=re.I)
+
         # Store logical NOT of upper limit mask as delta array for linmix
-        dmap[f'lum_{col}'] = (~upp_mask).astype(int)
+        dmap[lum_col] = (~upp_mask).astype(int)
         # Assign upper limits from error column into data column using upp_mask
         data.loc[upp_mask, col] = 2 * data[err_col][upp_mask]
 
         # Calculate luminosity of line flux and set to data
-        data[f'lum_{col}'] = flux2lum(data[col], data[dist])
+        data[lum_col] = flux2lum(data[col], data[dist])
         # Set luminosity error values to data
         # Since we usually have no errors for distance we can't propagate errors, so we assume distance is a scalar
         # TODO: Change method to at least search for distance errors!
-        data[f'lum_{col}_err'] = flux2lum(data[err_col], data[dist])
+        data[lum_err_col] = flux2lum(data[err_col], data[dist])
 
         # Replace flux variables with luminosities to plot on grid
         if col in x_vars:
-            x_vars[x_vars.index(col)] = f'lum_{col}'
+            x_vars[x_vars.index(col)] = lum_col
         if col in y_vars:
-            y_vars[y_vars.index(col)] = f'lum_{col}'
-        log_vars.append(f'lum_{col}')
+            y_vars[y_vars.index(col)] = lum_col
+        log_vars.append(lum_col)
     return dmap
+
+
+def _sub_lum(matchobj: re.Match):
+    match_span = matchobj.span()
+    string_span = matchobj.pos, matchobj.endpos
+    if match_span == string_span:
+        return 'Lum'
+    elif match_span[0] == 0:
+        return 'Lum_'
+    elif match_span[1] == string_span[1]:
+        return '_Lum'
+    else:
+        return '_Lum_'
 
 
 def identify_flux(data: pd.DataFrame, subset: Optional[list] = None) -> List[str]:
