@@ -140,9 +140,9 @@ def _sub_lum(matchobj: re.Match):
 
 def identify_flux(data: pd.DataFrame, subset: Optional[list] = None) -> List[str]:
     if subset is not None:
-        return [col for col in data if _is_flux(col) if col in subset]
+        return [col for col in data if _is_flux(col) if col in subset and not is_string_dtype(data[col])]
     else:
-        return [col for col in data if _is_flux(col)]
+        return [col for col in data if _is_flux(col) if not is_string_dtype(data[col])]
 
 
 def _is_flux(col: str):
@@ -153,14 +153,18 @@ def _is_flux(col: str):
     :return: True if test looks like a flux data column, False otherwise
     """
     cl = col.lower()
-    return 'err' not in cl and 'error' not in cl and cl.startswith('fl') or 'flux' in cl
+    return 'err' not in cl and 'error' not in cl and re.search(r'fl(ux)?', cl)
 
 
 def parse_err_map(data: pd.DataFrame, err_map: Optional[dict] = None, col_set: list = None) -> dict:
     if err_map is None:
-        return identify_errors(data, col_set)
+        return identify_errors(data, set(col_set))
     elif isinstance(err_map, dict):
-        return err_map
+        new_set = set(col_set) - set(err_map.keys())
+        if len(new_set) > 0:
+            return identify_errors(data, col_set=new_set)
+        else:
+            return err_map
     else:
         raise ValueError(f'Unexpected err_map input: {err_map} ')
 
