@@ -142,7 +142,8 @@ def regplot_log(
         truncate=False, fit_xrange=None, x_jitter=None, y_jitter=None,
         label=None, color=None, marker="o", size=50, ann_coeff=False,
         scatter_kws=None, line_kws=None, ax=None):
-    plotter = _RegressionPlotter_Log(x, y, xerr=xerr, yerr=yerr, data=data, x_estimator=x_estimator, x_bins=x_bins, x_ci=x_ci,
+    plotter = _RegressionPlotter_Log(x, y, xerr=xerr, yerr=yerr, data=data, x_estimator=x_estimator, x_bins=x_bins,
+                                     x_ci=x_ci,
                                      scatter=scatter, fit_reg=fit_reg, ci=ci, n_boot=n_boot, units=units, seed=seed,
                                      order=order, logistic=logistic, lowess=lowess, robust=robust,
                                      logx=logx, logy=logy, linmix=linmix, linmix_path=linmix_path,
@@ -165,6 +166,7 @@ def regplot_log(
     line_kws.setdefault('x_range', fit_xrange)
     line_kws.setdefault('ann_coeff', ann_coeff)
     plotter.plot(ax, scatter_kws, line_kws)
+    ax.set_xlim(fit_xrange[0], fit_xrange[1])
     return ax, plotter
 
 
@@ -374,7 +376,7 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         if self.logx:
             x = np.log10(self.x)
             if self.xerr is not None:
-                xerr = (1/np.log(10)) * self.xerr / self.x
+                xerr = (1 / np.log(10)) * self.xerr / self.x
             else:
                 xerr = self.xerr
         else:
@@ -383,7 +385,7 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         if self.logy:
             y = np.log10(self.y)
             if self.yerr is not None:
-                yerr = (1/np.log(10)) * self.yerr / self.y
+                yerr = (1 / np.log(10)) * self.yerr / self.y
             else:
                 yerr = self.yerr
         else:
@@ -496,7 +498,6 @@ class _RegressionPlotter_Log(_RegressionPlotter):
 
 
 if __name__ == '__main__':
-
     visir = pd.read_csv('Data/VISIR_merged_fluxes_TMP.csv', sep=',',
                         skipinitialspace=True, na_values=['#NAME?'])
 
@@ -505,7 +506,7 @@ if __name__ == '__main__':
     ydelta = (~upp_mask).astype(int)
     visir.loc[upp_mask, 'flux_x_corr'] = 2 * visir['fl_err_x'][upp_mask]
 
-    fig1, (ax11, ax12) = plt.subplots(nrows=2, constrained_layout=True,)
+    fig1, (ax11, ax12) = plt.subplots(nrows=2, constrained_layout=True, )
 
     regplot_log(data=visir, x='Mstar', y='fwhm_x', ax=ax11)
     ax11.set_title('regular fit')
@@ -515,11 +516,11 @@ if __name__ == '__main__':
     fig1.suptitle('regular vs linmix fit (linear scales)')
     plt.show()
 
-    fig2, (ax21, ax22) = plt.subplots(nrows=2, constrained_layout=True,)
+    fig2, (ax21, ax22) = plt.subplots(nrows=2, constrained_layout=True, )
     regplot_log(data=visir, x='Mstar', y='fwhm_x', logx=True, logy=True, n_boot=10000, ax=ax21)
     ax21.set_title('regular fit')
     ax21.set(yscale='log', xscale='log')
-    regplot_log(data=visir, x='Mstar', y='fwhm_x',  logx=True, logy=True, linmix=True,
+    regplot_log(data=visir, x='Mstar', y='fwhm_x', logx=True, logy=True, linmix=True,
                 n_boot=10000, ax=ax22, linmix_path='../test_regplot')
     ax22.set(yscale='log', xscale='log')
     ax22.set_title('linmix fit')
@@ -531,7 +532,7 @@ if __name__ == '__main__':
                 logx=True, logy=True, n_boot=10000, ax=ax31)
     ax31.set_title('regular fit (no upper limits used)')
     ax31.set(yscale='log', xscale='log')
-    regplot_log(data=visir, x='Mstar', y='flux_x_corr',  yerr='fl_err_x', ydelta=ydelta,
+    regplot_log(data=visir, x='Mstar', y='flux_x_corr', yerr='fl_err_x', ydelta=ydelta,
                 logx=True, logy=True, linmix=True,
                 n_boot=10000, ax=ax32, linmix_path='../test_regplot')
     ax32.set(yscale='log', xscale='log')
