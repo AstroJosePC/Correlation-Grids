@@ -1,3 +1,4 @@
+import re
 from copy import copy as copy_obj
 from typing import Optional, List
 from typing import Union
