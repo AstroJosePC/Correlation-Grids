@@ -41,7 +41,7 @@ def nsq_grid(dataset: Union[pd.DataFrame, str], x_vars: list, y_vars: list, log_
     all_vars = x_vars + y_vars
     y_vars = y_vars[::-1]
     error_map = parse_err_map(dataset, error_map, col_set=all_vars)
-    ranges_map = {var: (np.nanmin(dataset[var]), np.nanmax(dataset[var])) for var in x_vars}
+    ranges_map = dataset[x_vars].quantile(q=[0.025, 0.975]).to_dict(orient='list')
 
     regplot_kws = {} if regplot_kws is None else copy_obj(regplot_kws)
     regplot_kws.setdefault('ann_coeff', ann_coeff)
