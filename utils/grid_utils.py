@@ -33,7 +33,8 @@ def _identify_errors(data: pd.DataFrame, col_set: set = None):
             continue
 
         # else first find adjacent columns
-        idx = np.array([i - 2, i - 1, i + 1, i + 2])
+        # idx = np.array([i - 2, i - 1, i + 1, i + 2])
+        idx = np.array([i + 1, i - 1, i + 2, i - 2])
         new_idx = idx[(idx >= 0) & (idx < columns.size)]
         adjacent = columns[new_idx]
 
@@ -48,7 +49,7 @@ def _identify_errors(data: pd.DataFrame, col_set: set = None):
     return error_columns
 
 
-def identify_errors(data: pd.DataFrame, col_set=None):
+def identify_errors(data: pd.DataFrame, col_set: set = None):
     column_matches = _identify_errors(data, col_set=col_set)
 
     # validate and drop duplicated error columns
