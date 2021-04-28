@@ -38,6 +38,7 @@ def nsq_grid(dataset: Union[pd.DataFrame, str], x_vars: list, y_vars: list, log_
     elif copy:
         dataset = dataset.copy()
     all_vars = x_vars + y_vars
+    y_vars = y_vars[::-1]
     error_map = parse_err_map(dataset, error_map, col_set=all_vars)
     ranges_map = {var: (np.nanmin(dataset[var]), np.nanmax(dataset[var])) for var in x_vars}
 
