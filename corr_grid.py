@@ -5,11 +5,11 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_string_dtype
 
-from regplotter import regplot_log
-from smart_grid import SmartGrid
-from utils.grid_utils import identify_errors, similar
-
+from .regplotter import regplot_log
+from .smart_grid import SmartGrid
+from .utils.grid_utils import identify_errors, similar
 
 def get_data(path: str) -> pd.DataFrame:
     return pd.read_csv(path, sep=',', skipinitialspace=True, na_values=['#NAME?'])
