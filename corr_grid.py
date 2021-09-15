@@ -174,7 +174,10 @@ def parse_err_map(data: pd.DataFrame, err_map: Optional[dict] = None, col_set: l
 
 
 def fluxes_grid(dataset: Union[pd.DataFrame, str], x_vars: list, y_vars: list, log_vars: Optional[list] = None,
-                regplot_kws: Optional[dict] = None, ann_coeff: bool = True, **kwargs):
+                ann_coeff: bool = True, labels_map: dict = None, regplot_kws: Optional[dict] = None, **kwargs):
+    """
+    Correlation grid for VISIR/Spitzer table and flux processing format
+    """
     if isinstance(dataset, str):
         dataset = get_data(dataset)
     else:
@@ -190,5 +193,6 @@ def fluxes_grid(dataset: Union[pd.DataFrame, str], x_vars: list, y_vars: list, l
     # Flux Data Prep
     delta_map = flux_prep(dataset, x_vars, y_vars, log_vars, labels_map)
     # Generate Grid
-    nsq_grid(dataset, x_vars, y_vars, log_vars=log_vars, delta_map=delta_map,
-             regplot_kws=regplot_kws, ann_coeff=ann_coeff, copy=False, **kwargs)
+    g, error_map = nsq_grid(dataset, x_vars, y_vars, log_vars=log_vars, delta_map=delta_map, regplot_kws=regplot_kws,
+                            ann_coeff=ann_coeff, copy=False, labels_map=labels_map, **kwargs)
+    return g
