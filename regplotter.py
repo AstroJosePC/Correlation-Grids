@@ -15,7 +15,7 @@ from seaborn import utils
 from seaborn._decorators import _deprecate_positional_args
 from seaborn.regression import _RegressionPlotter
 
-from .utils import linmix as linmix_method
+from utils import linmix as linmix_method
 
 
 def fill_between(ax, x, y1, y2, *, where=None, interpolate=False, step=None, **kwargs):
