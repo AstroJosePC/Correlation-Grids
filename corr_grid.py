@@ -1,15 +1,15 @@
 import re
 from copy import copy as copy_obj
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from typing import Union
 
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_string_dtype
 
-from .regplotter import regplot_log
-from .smart_grid import SmartGrid
-from .utils.grid_utils import identify_errors, similar
+from regplotter import regplot_log
+from smart_grid import SmartGrid
+from utils.grid_utils import identify_errorsv2, similar
 
 def get_data(path: str) -> pd.DataFrame:
     return pd.read_csv(path, sep=',', skipinitialspace=True, na_values=['#NAME?'])
@@ -34,7 +34,8 @@ def regplot_log_wrap(x, y, log_vars: Optional[list] = None, err_map: Optional[di
 
 def nsq_grid(dataset: Union[pd.DataFrame, str], x_vars: list, y_vars: list, log_vars: Optional[list] = None,
              error_map: Optional[dict] = None, delta_map: Optional[dict] = None, regplot_kws: Optional[dict] = None,
-             ann_coeff: bool = True, copy: bool = True, plotter: callable = None, **kwargs):
+             ann_coeff: bool = True, copy: bool = True, plotter: callable = None, legend: bool = False,
+             qrange: Tuple = (0.025, 0.975), **kwargs):
     if isinstance(dataset, str):
         dataset = get_data(dataset)
     elif copy:
@@ -42,16 +43,21 @@ def nsq_grid(dataset: Union[pd.DataFrame, str], x_vars: list, y_vars: list, log_
     all_vars = x_vars + y_vars
     y_vars = y_vars[::-1]
     error_map = parse_err_map(dataset, error_map, col_set=all_vars)
-    ranges_map = dataset[x_vars].quantile(q=[0.025, 0.975]).to_dict(orient='list')
+    ranges_map = dataset[x_vars].quantile(q=qrange).to_dict(orient='list')
 
     regplot_kws = {} if regplot_kws is None else copy_obj(regplot_kws)
     regplot_kws.setdefault('ann_coeff', ann_coeff)
+    regplot_kws.setdefault('legend', legend)
 
     # Default grid spacing aesthetics
     kwargs.setdefault('height', 2.0)
     kwargs.setdefault('aspect', 1.2)
 
     g = SmartGrid(dataset, x_vars=x_vars, y_vars=y_vars, log_vars=log_vars, **kwargs)
+    if legend:
+        g._extract_legend_handles = True
+        g._legend_out = False
+
     if plotter is not None and callable(plotter):
         # print('custom plotter triggered')
         g.map_offdiag(plotter, log_vars=log_vars, err_map=error_map, ranges_map=ranges_map,
@@ -60,6 +66,8 @@ def nsq_grid(dataset: Union[pd.DataFrame, str], x_vars: list, y_vars: list, log_
         g.map_offdiag(regplot_log_wrap, log_vars=log_vars, err_map=error_map, ranges_map=ranges_map,
                       delta_map=delta_map, data=dataset, linmix=True, **regplot_kws)
     # Call tight layout
+    if legend:
+        g.add_legend(fontsize='xx-small', )
     g.tight_layout()
     return g, error_map
 
