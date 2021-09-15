@@ -28,10 +28,10 @@ def fill_between(ax, x, y1, y2, *, where=None, interpolate=False, step=None, **k
     if not any(c in kwargs for c in ("color", "facecolor")):
         kwargs["facecolor"] = ax._get_patches_for_fill.get_next_color()
     # Handle united data, such as dates
-    ax._process_unit_info(
-        **{f"{ind_dir}data": x, f"{dep_dir}data": y1}, kwargs=kwargs)
-    ax._process_unit_info(
-        **{f"{dep_dir}data": y2})
+    # ax._process_unit_info(
+    #     **{f"{ind_dir}data": x, f"{dep_dir}data": y1}, kwargs=kwargs)
+    # ax._process_unit_info(
+    #     **{f"{dep_dir}data": y2})
 
     # Convert the arrays so we can work with them
     x = np.ma.masked_invalid(getattr(ax, f"convert_{ind_dir}units")(x))
