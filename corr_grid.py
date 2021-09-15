@@ -84,7 +84,8 @@ def flux2lum(flux: pd.Series, dist: pd.Series) -> pd.Series:
     return 4 * np.pi * flux * dist ** 2 * 2487.30567840084
 
 
-def flux_prep(data: pd.DataFrame, x_vars: list, y_vars: list, log_vars: list, error_map: Optional[dict] = None):
+def flux_prep(data: pd.DataFrame, x_vars: list, y_vars: list, log_vars: list, labels_map: Optional[dict] = None,
+              error_map: Optional[dict] = None):
     """
     Pre-processing function for VISIR/Spitzer datasets
 
@@ -92,6 +93,7 @@ def flux_prep(data: pd.DataFrame, x_vars: list, y_vars: list, log_vars: list, er
     :param x_vars:
     :param y_vars:
     :param log_vars:
+    :param labels_map:
     :param error_map: error map dictionary
     :return: delta map
     """
@@ -122,6 +124,8 @@ def flux_prep(data: pd.DataFrame, x_vars: list, y_vars: list, log_vars: list, er
         if col in y_vars:
             y_vars[y_vars.index(col)] = lum_col
         log_vars.append(lum_col)
+        if labels_map is not None and col in labels_map:
+            labels_map[lum_col] = labels_map.pop(col)
     return dmap
 
 
