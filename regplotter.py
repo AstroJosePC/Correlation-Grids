@@ -186,6 +186,7 @@ class _RegressionPlotter_Log(_RegressionPlotter):
                  color=None, label=None, linmix_path=None, linmix_kws=None):
 
         # Set member attributes
+        self.legend = legend
         self.x_estimator = x_estimator
         self.ci = ci
         self.x_ci = ci if x_ci == "ci" else x_ci
@@ -207,6 +208,10 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         self.color = color
         self.label = label
         self._chain = None
+        self._yhat = None
+        self._grid = None
+        self._err_bands = None
+        self._yhat_boots = None
 
         # Validate the regression options:
         if sum((order > 1, logistic, robust, lowess, logx)) > 1:
@@ -326,6 +331,7 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         else:
             err_bands = utils.ci(yhat_boots, ci, axis=0)
 
+        self._yhat_boots = yhat_boots
         return grid, yhat, err_bands
 
     def fit_logxy(self, grid):
@@ -470,8 +476,8 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         """Draw the model."""
         ann_coeff = kws.pop('ann_coeff', False)
         # Fit the regression model
-        grid, yhat, err_bands = self.fit_regression(ax, x_range=kws.pop('x_range', None))
-        edges = grid[0], grid[-1]
+        self._grid, self._yhat, self._err_bands = self.fit_regression(ax, x_range=kws.pop('x_range', None))
+        edges = self._grid[0], self._grid[-1]
 
         # Get set default aesthetics
         fill_color = kws["color"]
@@ -479,10 +485,10 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         kws.setdefault("linewidth", lw)
 
         # Draw the regression line and confidence interval
-        line, = ax.plot(grid, yhat, **kws)
+        line, = ax.plot(self._grid, self._yhat, **kws)
         line.sticky_edges.x[:] = edges  # Prevent mpl from adding margin
-        if err_bands is not None:
-            fill_between(ax, grid, *err_bands, facecolor=fill_color, alpha=.15)
+        if self._err_bands is not None:
+            fill_between(ax, self._grid, *self._err_bands, facecolor=fill_color, alpha=.15)
         if ann_coeff:
             self._ann_coeff(ax)
 
