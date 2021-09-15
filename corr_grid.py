@@ -175,11 +175,12 @@ def _is_flux(col: str):
 
 def parse_err_map(data: pd.DataFrame, err_map: Optional[dict] = None, col_set: list = None) -> dict:
     if err_map is None:
-        return identify_errors(data, set(col_set))
+        return identify_errorsv2(data, set(col_set))
     elif isinstance(err_map, dict):
         new_set = set(col_set) - set(err_map.keys())
         if len(new_set) > 0:
-            return identify_errors(data, col_set=new_set)
+            new_map = identify_errorsv2(data, col_set=new_set)
+            return {**new_map, **err_map}
         else:
             return err_map
     else:
