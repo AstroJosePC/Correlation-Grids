@@ -109,7 +109,7 @@ def flux_prep(data: pd.DataFrame, x_vars: list, y_vars: list, log_vars: list, la
         # Store logical NOT of upper limit mask as delta array for linmix
         dmap[lum_col] = (~upp_mask).astype(int)
         # Assign upper limits from error column into data column using upp_mask
-        data.loc[upp_mask, col] = 2 * data[err_col][upp_mask]
+        data.loc[upp_mask, col] = data[err_col][upp_mask]
 
         # Calculate luminosity of line flux and set to data
         data[lum_col] = flux2lum(data[col], data[dist])
