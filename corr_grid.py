@@ -184,8 +184,11 @@ def fluxes_grid(dataset: Union[pd.DataFrame, str], x_vars: list, y_vars: list, l
     x_vars = copy_obj(x_vars)
     y_vars = copy_obj(y_vars)
 
+    # Copy labels map in case they are modified in flux_prep
+    labels_map = copy_obj(labels_map)
+
     # Flux Data Prep
-    delta_map = flux_prep(dataset, x_vars, y_vars, log_vars)
+    delta_map = flux_prep(dataset, x_vars, y_vars, log_vars, labels_map)
     # Generate Grid
     nsq_grid(dataset, x_vars, y_vars, log_vars=log_vars, delta_map=delta_map,
              regplot_kws=regplot_kws, ann_coeff=ann_coeff, copy=False, **kwargs)
