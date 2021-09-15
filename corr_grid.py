@@ -90,7 +90,7 @@ def flux2lum(flux: pd.Series, dist: pd.Series) -> pd.Series:
     """
     Calculate luminosity in solar luminosities.
     The last term in the calculation is the unit conversion factor to Lsun.
-    :param flux: flux in units of erg / cm^2 / s
+    :param flux: flux in units of 10^-14 erg / cm^2 / s
     :param dist: distance in units of parsec
     :return: luminosities in units of Lsun
     """
