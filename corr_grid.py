@@ -11,60 +11,68 @@ from regplotter import regplot_log
 from smart_grid import SmartGrid
 from utils.grid_utils import identify_errorsv2, similar
 
+# Variable to assert these variables do not have errors; for development purposes
+no_err_assert = ['Teff', 'Mstar', 'Lstar', 'logLacc', 'dist', 'incl', 'BC_fwhm', 'n_13-30',
+                 'MSTAR', 'LSTAR', 'LOGLACC', 'LOGMACC', 'TEFF', 'N1331', 'FNIR', 'DIST', 'LOGRDUST95',
+                 'RSUBL', 'RSNOW_ACC', 'LOGRDUST68']
+
+
 def get_data(path: str) -> pd.DataFrame:
     return pd.read_csv(path, sep=',', skipinitialspace=True, na_values=['#NAME?'])
 
 
 def regplot_log_wrap(x, y, log_vars: Optional[list] = None, err_map: Optional[dict] = None,
-                     data: Optional[pd.DataFrame] = None, ranges_map: Optional[dict] = None,
-                     delta_map: Optional[dict] = None, seed: Optional[int] = None, **kwargs):
+                     data: Optional[pd.DataFrame] = None, delta_map: Optional[dict] = None, **kwargs):
     logx = x.name in log_vars
     logy = y.name in log_vars
     xerr = err_map.get(x.name)
     yerr = err_map.get(y.name)
-    x_range = ranges_map.get(x.name)
     xdelta = delta_map.get(x.name)
     ydelta = delta_map.get(y.name)
-    linmix_kws = dict(seed=seed)
 
     ax, plotter = regplot_log(data=data, x=x, y=y, xerr=xerr, yerr=yerr, logx=logx, logy=logy,
-                              xdelta=xdelta, ydelta=ydelta, fit_xrange=x_range, linmix_kws=linmix_kws, **kwargs)
+                              xdelta=xdelta, ydelta=ydelta, **kwargs)
     return ax, plotter
 
 
 def nsq_grid(dataset: Union[pd.DataFrame, str], x_vars: list, y_vars: list, log_vars: Optional[list] = None,
              error_map: Optional[dict] = None, delta_map: Optional[dict] = None, regplot_kws: Optional[dict] = None,
              ann_coeff: bool = True, copy: bool = True, plotter: callable = None, legend: bool = False,
-             qrange: Tuple = (0.025, 0.975), **kwargs):
+             qrange: Tuple = (0.025, 0.975), grid: Optional[SmartGrid] = None, **kwargs):
     if isinstance(dataset, str):
         dataset = get_data(dataset)
     elif copy:
         dataset = dataset.copy()
     all_vars = x_vars + y_vars
     y_vars = y_vars[::-1]
+    assert len(set(all_vars) - set(dataset.columns)) == 0, 'A column included in x_vars or y_vars is not in the dataset'
     error_map = parse_err_map(dataset, error_map, col_set=all_vars)
-    ranges_map = dataset[x_vars].quantile(q=qrange).to_dict(orient='list')
+    print(all_vars, error_map)
+
+    if delta_map is None:
+        delta_map = dict()
 
     regplot_kws = {} if regplot_kws is None else copy_obj(regplot_kws)
     regplot_kws.setdefault('ann_coeff', ann_coeff)
     regplot_kws.setdefault('legend', legend)
+    regplot_kws.setdefault('qrange', qrange)
 
-    # Default grid spacing aesthetics
-    kwargs.setdefault('height', 2.0)
-    kwargs.setdefault('aspect', 1.2)
-
-    g = SmartGrid(dataset, x_vars=x_vars, y_vars=y_vars, log_vars=log_vars, **kwargs)
+    if grid:
+        assert len(grid.x_vars) == len(x_vars) and len(grid.y_vars) == len(y_vars), 'Input grid does not match the ' \
+                                                                                    'intended mapping '
+        g = grid
+    else:
+        # Default grid spacing aesthetics
+        kwargs.setdefault('height', 2.0)
+        kwargs.setdefault('aspect', 1.2)
+        g = SmartGrid(dataset, x_vars=x_vars, y_vars=y_vars, log_vars=log_vars, **kwargs)
     if legend:
         g._extract_legend_handles = True
         g._legend_out = False
 
-    if plotter is not None and callable(plotter):
-        # print('custom plotter triggered')
-        g.map_offdiag(plotter, log_vars=log_vars, err_map=error_map, ranges_map=ranges_map,
-                      delta_map=delta_map, data=dataset, linmix=True, **regplot_kws)
-    else:
-        g.map_offdiag(regplot_log_wrap, log_vars=log_vars, err_map=error_map, ranges_map=ranges_map,
-                      delta_map=delta_map, data=dataset, linmix=True, **regplot_kws)
+    if plotter is None:
+        plotter = regplot_log_wrap
+    g.map_offdiag(plotter, log_vars=log_vars, err_map=error_map, delta_map=delta_map, linmix=True, **regplot_kws)
     # Call tight layout
     if legend:
         g.add_legend(fontsize='xx-small', )
@@ -86,22 +94,25 @@ def _dist_col(data: pd.DataFrame):
     return data.columns[indx]
 
 
-def flux2lum(flux: pd.Series, dist: pd.Series) -> pd.Series:
+def flux2lum(flux: pd.Series, dist: pd.Series, correction_col: Union[pd.Series, float] = 1.0) -> pd.Series:
     """
     Calculate luminosity in solar luminosities.
     The last term in the calculation is the unit conversion factor to Lsun.
     :param flux: flux in units of 10^-14 erg / cm^2 / s
     :param dist: distance in units of parsec
+    :param correction_col:
     :return: luminosities in units of Lsun
     """
-    return 4 * np.pi * flux * dist ** 2 * 2487.30567840084
+    return 4 * np.pi * flux * dist ** 2 * 2487.30567840084 * correction_col
 
 
-def flux_prep(data: pd.DataFrame, x_vars: list, y_vars: list, log_vars: list, labels_map: Optional[dict] = None,
-              error_map: Optional[dict] = None):
+def flux_prep(data: pd.DataFrame, x_vars: Optional[List[str]] = None, y_vars: Optional[List[str]] = None,
+              log_vars: Optional[List[str]] = None, labels_map: Optional[dict] = None,
+              error_map: Optional[dict] = None, correction_col: Optional[str] = None):
     """
     Pre-processing function for VISIR/Spitzer datasets
 
+    :param correction_col:
     :param data: dataset
     :param x_vars:
     :param y_vars:
@@ -114,30 +125,43 @@ def flux_prep(data: pd.DataFrame, x_vars: list, y_vars: list, log_vars: list, la
     dmap = {}
     # Get column that looks like distance
     dist = _dist_col(data)
-    for col, err_col, upp_mask in _flux_upps(data, error_map, x_vars + y_vars):
+    assert dist, 'Could not find distance column wtf?'
+    # Get subset
+    all_vars = []
+    if x_vars is not None:
+        all_vars += x_vars
+    if y_vars is not None:
+        all_vars += y_vars
+    for col, err_col, upp_mask in _flux_upps(data, error_map, all_vars):
         # Generate new column name for luminosities
         lum_col = re.sub(r'[_ ]?fl(ux)?[_ ]?', _sub_lum, col, flags=re.I)
         lum_err_col = re.sub(r'[_ ]?fl(ux)?[_ ]?', _sub_lum, err_col, flags=re.I)
 
         # Store logical NOT of upper limit mask as delta array for linmix
-        dmap[lum_col] = (~upp_mask).astype(int)
+        dmap[lum_col] = f'{lum_col}_delta'
+        data[f'{lum_col}_delta'] = (~upp_mask).astype(int)
         # Assign upper limits from error column into data column using upp_mask
         data.loc[upp_mask, col] = data[err_col][upp_mask]
 
         # Calculate luminosity of line flux and set to data
-        data[lum_col] = flux2lum(data[col], data[dist])
         # Set luminosity error values to data
         # Since we usually have no errors for distance we can't propagate errors, so we assume distance is a scalar
         # TODO: Change method to at least search for distance errors!
-        data[lum_err_col] = flux2lum(data[err_col], data[dist])
+        if correction_col in data:
+            data[lum_col] = flux2lum(data[col], data[dist], correction_col=data[correction_col])
+            data[lum_err_col] = flux2lum(data[err_col], data[dist], correction_col=data[correction_col])
+        else:
+            data[lum_col] = flux2lum(data[col], data[dist])
+            data[lum_err_col] = flux2lum(data[err_col], data[dist])
 
         # Replace flux variables with luminosities to plot on grid
-        if col in x_vars:
+        if x_vars and col in x_vars:
             x_vars[x_vars.index(col)] = lum_col
-        if col in y_vars:
+        if y_vars and col in y_vars:
             y_vars[y_vars.index(col)] = lum_col
-        log_vars.append(lum_col)
-        if labels_map is not None and col in labels_map:
+        if log_vars:
+            log_vars.append(lum_col)
+        if labels_map and col in labels_map:
             labels_map[lum_col] = labels_map.pop(col)
     return dmap
 
@@ -156,8 +180,8 @@ def _sub_lum(matchobj: re.Match):
 
 
 def identify_flux(data: pd.DataFrame, subset: Optional[list] = None) -> List[str]:
-    if subset is not None:
-        return [col for col in data if _is_flux(col) if col in subset and not is_string_dtype(data[col])]
+    if subset:
+        return [col for col in data if col in subset and not is_string_dtype(data[col]) and _is_flux(col)]
     else:
         return [col for col in data if _is_flux(col) if not is_string_dtype(data[col])]
 
@@ -174,13 +198,15 @@ def _is_flux(col: str):
 
 
 def parse_err_map(data: pd.DataFrame, err_map: Optional[dict] = None, col_set: list = None) -> dict:
+    col_set = set(col_set) if col_set else None
     if err_map is None:
-        return identify_errorsv2(data, set(col_set))
+        return identify_errorsv2(data, col_set)
     elif isinstance(err_map, dict):
-        new_set = set(col_set) - set(err_map.keys())
-        if len(new_set) > 0:
+        new_set = set(col_set) - set(err_map.keys()) if col_set else None
+        if col_set and len(new_set) > 0:
             new_map = identify_errorsv2(data, col_set=new_set)
-            return {**new_map, **err_map}
+            new_map.update(err_map)
+            return new_map
         else:
             return err_map
     else:

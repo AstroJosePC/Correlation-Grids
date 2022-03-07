@@ -69,6 +69,7 @@ def uppers_funcv2(data, x_param, y_param, x_param_err=None, y_param_err=None):
 def correct_param(data, z_param, z_param_err, z_upp_mask):
     # Last modification: multiply upper limits by 2
     z_correct_params = data[z_param].copy()
+    # REVISIT: must check usage to avoid x2 sigma; replace
     z_correct_params[z_upp_mask] = 2 * data[z_param_err][z_upp_mask]
     return z_correct_params
 

@@ -134,21 +134,21 @@ def fill_between(ax, x, y1, y2, *, where=None, interpolate=False, step=None, **k
 def regplot_log(
         *,
         x=None, y=None, xerr=None, yerr=None,
-        data=None,
+        data=None, qrange=None,
         x_estimator=None, x_bins=None, x_ci="ci",
         scatter=True, fit_reg=True, ci=95, n_boot=1000, units=None,
         seed=None, order=1, logistic=False, lowess=False, robust=False, linmix=False, linmix_path=None,
         logx=False, logy=False, x_partial=None, y_partial=None, xdelta=None, ydelta=None, linmix_kws=None,
         truncate=False, fit_xrange=None, x_jitter=None, y_jitter=None,
-        label=None, color=None, marker="o", size=50, ann_coeff=False,
-        scatter_kws=None, line_kws=None, ax=None):
+        label=None, color=None, marker="o", size=50, ann_coeff=False, linestyle='-',
+        scatter_kws=None, line_kws=None, ax=None, legend=False):
     plotter = _RegressionPlotter_Log(x, y, xerr=xerr, yerr=yerr, data=data, x_estimator=x_estimator, x_bins=x_bins,
-                                     x_ci=x_ci,
+                                     x_ci=x_ci, qrange=qrange,
                                      scatter=scatter, fit_reg=fit_reg, ci=ci, n_boot=n_boot, units=units, seed=seed,
                                      order=order, logistic=logistic, lowess=lowess, robust=robust,
                                      logx=logx, logy=logy, linmix=linmix, linmix_path=linmix_path,
                                      x_partial=x_partial, y_partial=y_partial, xdelta=xdelta, ydelta=ydelta,
-                                     truncate=truncate, linmix_kws=linmix_kws,
+                                     truncate=truncate, linmix_kws=linmix_kws, legend=legend,
                                      x_jitter=x_jitter, y_jitter=y_jitter, color=color, label=label)
 
     if ax is None:
@@ -163,10 +163,13 @@ def regplot_log(
     scatter_kws["sizes"] = sizes
 
     line_kws = {} if line_kws is None else copy.copy(line_kws)
-    line_kws.setdefault('x_range', fit_xrange)
+    # line_kws.setdefault('x_range', fit_xrange)
     line_kws.setdefault('ann_coeff', ann_coeff)
+    line_kws.setdefault('linestyle', linestyle)
+
     plotter.plot(ax, scatter_kws, line_kws)
-    ax.set_xlim(fit_xrange[0], fit_xrange[1])
+    # TODO: It might be worth adding margins actually and calculating the extend of our CI fill x-bounds
+    # ax.set_xlim(fit_xrange[0], fit_xrange[1])
     return ax, plotter
 
 
@@ -178,11 +181,11 @@ class _RegressionPlotter_Log(_RegressionPlotter):
     """
 
     def __init__(self, x, y, data=None, xerr=None, yerr=None, x_estimator=None, x_bins=None,
-                 x_ci="ci", scatter=True, fit_reg=True, ci=95, n_boot=1000,
+                 x_ci="ci", scatter=True, fit_reg=True, ci=95, n_boot=1000, qrange=None,
                  units=None, seed=None, order=1, logistic=False, lowess=False,
                  robust=False, logx=False, logy=False, linmix=False,
                  x_partial=None, y_partial=None, xdelta=None, ydelta=None,
-                 truncate=False, x_jitter=None, y_jitter=None,
+                 truncate=False, x_jitter=None, y_jitter=None, legend=False,
                  color=None, label=None, linmix_path=None, linmix_kws=None):
 
         # Set member attributes
@@ -212,17 +215,25 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         self._grid = None
         self._err_bands = None
         self._yhat_boots = None
+        self.qrange = qrange
 
         # Validate the regression options:
         if sum((order > 1, logistic, robust, lowess, logx)) > 1:
             raise ValueError("Mutually exclusive regression options.")
 
+        # DUMMY
+        self.x_name = x.name if hasattr(x, 'name') else None
+        self.y_name = y.name if hasattr(y, 'name') else None
+
+        if xdelta:
+            if (isinstance(xdelta, str) and all(data[xdelta] == 1)) or all(xdelta == 1):
+                raise AssertionError(f'No upper limits on the x direction are allowed! {self.x_name}')
+
         # Extract the data vals from the arguments or passed dataframe
         self.establish_variables(data, x=x, y=y, xerr=xerr, yerr=yerr, ydelta=ydelta, units=units,
                                  x_partial=x_partial, y_partial=y_partial)
         # Filter out bad data
-        self.filter_out("x", "y", 'xerr', 'yerr', "ydelta", "units", "x_partial", "y_partial",
-                        xdelta=xdelta, ydelta=ydelta)
+        self.filter_out("x", "y", 'xerr', 'yerr', "ydelta", "units", "x_partial", "y_partial")
 
         # Regress nuisance variables out of the data
         if self.x_partial is not None:
@@ -244,7 +255,10 @@ class _RegressionPlotter_Log(_RegressionPlotter):
 
         # Save the range of the x variable for the grid later
         if self.fit_reg:
-            self.x_range = self.x.min(), self.x.max()
+            self.x_range = self.x.quantile(q=qrange).values if qrange else (self.x.min(), self.x.max())
+            self.y_range = self.y.quantile(q=qrange).values if qrange else (self.y.min(), self.y.max())
+
+            # self.x_range = self.x.min(), self.x.max()
 
         # Check if path to linmix output is a proper directory
         self.linmix_path = linmix_path
@@ -255,28 +269,27 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         else:
             self.save_linmix = False
 
-    def filter_out(self, *vars, xdelta=None, ydelta=None):
+    def filter_out(self, *vars):
         # Dummy variable to drop invalid upper limits
         drop_upp = np.zeros(self.x.size)
 
-        # Remove x non-detections: only y non-detecitons are allowed!
-        if xdelta is not None:
-            drop_upp[~xdelta.astype(bool)] = np.nan
-        # Remove x errors equal to zero; they make no sense!?
+        # Missing x errors are 'okay', but must be set to zero
         if self.xerr is not None:
-            drop_upp[self.xerr == 0.0] = np.nan
+            self.xerr = self.xerr.copy()
+            self.xerr[np.isnan(self.xerr)] = 0.0
 
-        # Remove x errors equal to zero for detections
+        # Missing y errors for detections are 'okay', but must be set to zero
         if self.yerr is not None:
-            to_drop = self.yerr == 0.0
-            if ydelta is not None:
-                detect = ydelta.astype(bool)
-                to_drop = to_drop & detect
-            drop_upp[to_drop] = np.nan
+            self.yerr = self.yerr.copy()
+            to_replace = np.isnan(self.yerr)
+            if self.ydelta is not None:
+                detect = self.ydelta.astype(bool)
+                to_replace = to_replace & detect
+            self.yerr[to_replace] = 0.0
 
         # Remove y non-detections for methods other than linmix
-        if not self.linmix and ydelta is not None:
-            drop_upp[~ydelta.astype(bool)] = np.nan
+        if not self.linmix and self.ydelta is not None:
+            drop_upp[~self.ydelta.astype(bool)] = np.nan
 
         # Drop null observations, and those marked above
         vals = [getattr(self, var) for var in vars]
@@ -292,7 +305,7 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         # Create the grid for the regression
         if grid is None:
             if self.truncate:
-                x_min, x_max = self.x_range
+                x_min, x_max = self.x.min(), self.x.max()
             elif x_range is not None:
                 x_min, x_max = x_range
             else:
@@ -398,7 +411,7 @@ class _RegressionPlotter_Log(_RegressionPlotter):
             y = self.y
             yerr = self.yerr
 
-        lm = linmix_method.LinMix(x, y, xsig=xerr, ysig=yerr, delta=self.ydelta, **self.linmix_kws)
+        lm = linmix_method.LinMix(x, y, xsig=xerr, ysig=yerr, delta=self.ydelta, seed=self.seed, **self.linmix_kws)
         lm.run_mcmc(maxiter=self.n_boot, silent=True)
         self._chain = lm.chain
         # Compute median values, standard deviations of results
@@ -438,6 +451,8 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         # This would ideally be handled better in matplotlib (i.e., distinguish
         # between edgewidth for solid glyphs and linewidth for line glyphs
         # but this should do for now.
+        kws = copy.copy(kws)
+
         line_markers = ["1", "2", "3", "4", "+", "x", "|", "_"]
         if self.x_estimator is None:
             if "markers" in kws and kws["markers"]['norm'] in line_markers:
@@ -451,7 +466,8 @@ class _RegressionPlotter_Log(_RegressionPlotter):
             if self.ydelta is not None and np.any(self.ydelta == 0):
                 # If we got upper limits, then draw using seaborn
                 detections = ['norm' if detection else 'upp' for detection in self.ydelta]
-                sns.scatterplot(x=x, y=y, style=detections, size=detections, legend=False, ax=ax, **kws)
+                kws.setdefault('style', detections)
+                kws.setdefault('size', detections)
             else:
                 if "markers" in kws:
                     markers = kws.pop('markers')
@@ -459,11 +475,12 @@ class _RegressionPlotter_Log(_RegressionPlotter):
                 if 'sizes' in kws:
                     sizes = kws.pop('sizes')
                     kws.setdefault('s', sizes['norm'])
-                ax.scatter(x, y, **kws)
+            sns.scatterplot(x=x, y=y, legend=False, ax=ax, **kws)
         else:
             # TODO abstraction
-            ci_kws = {"color": kws["color"]}
-            ci_kws["linewidth"] = mpl.rcParams["lines.linewidth"] * 1.75
+            raise AssertionError('This should not be reached, investigate!')
+            # noinspection PyUnreachableCode
+            ci_kws = {"color": kws["color"], "linewidth": mpl.rcParams["lines.linewidth"] * 1.75}
             kws.setdefault("s", 50)
 
             xs, ys, cis = self.estimate_data
@@ -472,12 +489,24 @@ class _RegressionPlotter_Log(_RegressionPlotter):
                     ax.plot([x, x], ci, **ci_kws)
             ax.scatter(xs, ys, **kws)
 
-    def lineplot(self, ax, kws):
+    def lineplot(self, ax: plt.Axes, kws):
         """Draw the model."""
         ann_coeff = kws.pop('ann_coeff', False)
         # Fit the regression model
-        self._grid, self._yhat, self._err_bands = self.fit_regression(ax, x_range=kws.pop('x_range', None))
+        x_range = kws.pop('x_range', self.x_range)
+        y_range = kws.pop('y_range', self.y_range)
+
+        if self.scatter and x_range is not None and (self.x.min() == x_range[0] and self.x.max() == x_range[1]):
+            x_range = ax.get_xlim()
+            y_range = ax.get_ylim()
+
+        self._grid, self._yhat, self._err_bands = self.fit_regression(ax, x_range=x_range)
         edges = self._grid[0], self._grid[-1]
+
+        trim_line = (y_range[0] <= self._yhat) & (self._yhat <= y_range[1])
+        grid = self._grid[trim_line]
+        yhat = self._yhat[trim_line]
+        err_bands = self._err_bands[:, trim_line] if self._err_bands is not None else None
 
         # Get set default aesthetics
         fill_color = kws["color"]
@@ -485,22 +514,37 @@ class _RegressionPlotter_Log(_RegressionPlotter):
         kws.setdefault("linewidth", lw)
 
         # Draw the regression line and confidence interval
-        line, = ax.plot(self._grid, self._yhat, **kws)
+        line, = ax.plot(grid, yhat, **kws)
         line.sticky_edges.x[:] = edges  # Prevent mpl from adding margin
-        if self._err_bands is not None:
-            fill_between(ax, self._grid, *self._err_bands, facecolor=fill_color, alpha=.15)
+        if err_bands is not None:
+            collection = fill_between(ax, grid, *err_bands, facecolor=fill_color, alpha=.15)
+            if self.legend:
+                ax.legend(handles=[collection], labels=['95% CI'])
         if ann_coeff:
-            self._ann_coeff(ax)
+            self._ann_coeff(ax, color=fill_color)
 
-    def _ann_coeff(self, ax):
+        # ax.set_xlim(*edges)
+        # ax.set_ylim(*y_limts)
+
+    def _ann_coeff(self, ax, x=None, y=None, color=None, **kwargs):
+        if x is None:
+            x = 0.05
+        if y is None:
+            y = 0.95
+        if color is None:
+            color = 'white'
         if self.linmix and self._chain is not None:
             corr_coeff = np.median(self._chain['corr'])
+            mad = np.median(np.absolute(self._chain['corr'] - corr_coeff))
+            ann = f' coeff: {corr_coeff:.2f}±{mad:.2f}'
         else:
             import scipy.stats as stats
-            corr_coeff, _ = stats.pearsonr(self.x, self.y)
+            corr_coeff, pvalue = stats.pearsonr(self.x, self.y)
+            ann = f' r: {corr_coeff:.2f}, p: {pvalue:.2f}'
 
-        ax.text(s=f' coeff: {corr_coeff:.2f}', x=0.05, y=0.95, transform=ax.transAxes,
-                bbox={'boxstyle': 'round', 'pad': 0.25, 'facecolor': 'white', 'edgecolor': 'gray'})
+        ax.text(s=ann, x=x, y=y, transform=ax.transAxes,
+                bbox={'boxstyle': 'round', 'pad': 0.25, 'facecolor': color, 'edgecolor': 'gray', 'alpha': 0.5},
+                **kwargs)
 
 
 if __name__ == '__main__':
@@ -510,6 +554,7 @@ if __name__ == '__main__':
     visir['flux_x_corr'] = visir['flux_x'].copy()
     upp_mask = visir['fl_err_x'] > visir['flux_x']
     ydelta = (~upp_mask).astype(int)
+    # REVISIT: no more x2 sigma, must replace
     visir.loc[upp_mask, 'flux_x_corr'] = 2 * visir['fl_err_x'][upp_mask]
 
     fig1, (ax11, ax12) = plt.subplots(nrows=2, constrained_layout=True, )
