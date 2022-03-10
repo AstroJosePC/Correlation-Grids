@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from corr_grid import nsq_grid, regplot_log_wrap, flux_prep
-from tools import plotter_wrapper, remove_disks, wind_disk_design
+from tools import plotter_wrapper, wind_disk_design
 
 mpl.rcParams['figure.dpi'] = 200
 
@@ -12,21 +12,27 @@ LABELS = True
 STATS = True
 
 # REMOVE FOLLOWING TARGETS:
-disks_to_ignore = ['MWC297', 'TW Hya', 'GQ Lup', 'WaOph6', 'AA Tau']
+low_mass = ['GQ Lup', 'WaOph6', 'AA Tau']
+disks_to_ignore = ['MWC297', 'TW Hya']
 
+# Additional columns
+add_xvars = ['TEFF', 'FW10']
+add_yvars = ['FW10']
+
+# Other params
+log_vars = ['MSTAR', 'LSTAR', 'TEFF', 'V1_FLUX', 'V1H_FLUX', 'V2_FLUX', 'I13_FLUX']
 plotter_wrap = plotter_wrapper(regplot_log_wrap, labels=LABELS, stats=STATS)
+labels_map = {'V1_FLUX': r'CO v1-0 Lum (L$_\odot$)',
+              'V1H_FLUX': r'CO v1H-0H Lum (L$_\odot$)',
+              'V2_FLUX': r'CO v2-1 Lum (L$_\odot$)',
+              'I13_FLUX': r'$^{13}$CO v1-0 Lum (L$_\odot$)'}
 
 if __name__ == '__main__':
     dataset = pd.read_csv('../Data/shapes dataset.csv', sep=',', skipinitialspace=True, na_values=['#NAME?'])
-    remove_disks(dataset, disks_to_ignore)
+    # dataset = remove_disks(dataset, disks_to_ignore)
 
-    xvars = ['MSTAR', 'LSTAR', 'TEFF', 'LOGLACC', 'INCL', 'N1330']
-    yvars = ['V1_FLUX', 'V1H_FLUX', 'V2_FLUX', 'I13_FLUX']
-    log_vars = ['MSTAR', 'LSTAR', 'TEFF', 'V1_FLUX', 'V1H_FLUX', 'V2_FLUX', 'I13_FLUX']
-    labels_map = {'V1_FLUX': r'CO v1-0 Lum (L$_\odot$)',
-                  'V1H_FLUX': r'CO v1H-0H Lum (L$_\odot$)',
-                  'V2_FLUX': r'CO v2-1 Lum (L$_\odot$)',
-                  'I13_FLUX': r'$^{13}$CO v1-0 Lum (L$_\odot$)'}
+    xvars = ['MSTAR', 'LSTAR', 'LOGLACC', 'INCL', 'N1330'] + add_xvars
+    yvars = ['V1_FLUX', 'V1H_FLUX', 'V2_FLUX', 'I13_FLUX'] + add_yvars
 
     scatter_kws = dict(alpha=0.7, zorder=2.5)
     line_kws = dict(alpha=0.5, linewidth=3)
@@ -39,5 +45,4 @@ if __name__ == '__main__':
                             delta_map=delta_map, labels_map=labels_map, ann_coeff=False, copy=False, qrange=(0, 1),
                             height=3, legend=True, regplot_kws=regplot_kws, markers=markers, linestyles=linestyles,
                             plotter=plotter_wrap)
-    plt.gcf().savefig(r'G:\My Drive\AcademicLife\Banzatti\Research\Seaborn Grids\seaborn_grids\output '
-                      r'images\corrected shapes\new correlation grid-rename me.pdf')
+    plt.gcf().savefig(r'new correlation grid-rename me.pdf')
