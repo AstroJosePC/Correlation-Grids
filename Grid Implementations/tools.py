@@ -47,12 +47,15 @@ def plotter_wrapper(func, **kws):
         # x, y = plotter.scatter_data
 
         if kws.get('labels', False):
+            # add disk labels
             add_labels(ax, kwargs, plotter)
 
         if plotter.ydelta is not None:
+            # Add detections info text
             add_detections(ax, color, plotter, x, y)
 
         if kws.get('stats', False):
+            # add regression stats
             add_stats(ax, color, corr_x, corr_y, plotter)
         return ax, plotter
 
