@@ -57,6 +57,10 @@ def plotter_wrapper(func, **kws):
         if kws.get('stats', False):
             # add regression stats
             add_stats(ax, color, corr_x, corr_y, plotter)
+
+        # if kws.get('results', False):
+        #     output_results(y.name)
+        #
         return ax, plotter
 
     return wrapper

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from corr_grid import nsq_grid, regplot_log_wrap, flux_prep
-from tools import plotter_wrapper, wind_disk_design
+from tools import plotter_wrapper, wind_disk_design, remove_disks
 
 mpl.rcParams['figure.dpi'] = 200
 
@@ -12,8 +12,8 @@ LABELS = True
 STATS = True
 
 # REMOVE FOLLOWING TARGETS:
-low_mass = ['GQ Lup', 'WaOph6', 'AA Tau']
-disks_to_ignore = ['MWC297', 'TW Hya']
+low_mass = ['WaOph6', 'AA Tau']
+outliers = ['MWC297', 'TW Hya']
 
 # Additional columns
 add_xvars = ['TEFF', 'FW10']
@@ -28,8 +28,8 @@ labels_map = {'V1_FLUX': r'CO v1-0 Lum (L$_\odot$)',
               'I13_FLUX': r'$^{13}$CO v1-0 Lum (L$_\odot$)'}
 
 if __name__ == '__main__':
-    dataset = pd.read_csv('../Data/shapes dataset.csv', sep=',', skipinitialspace=True, na_values=['#NAME?'])
-    # dataset = remove_disks(dataset, disks_to_ignore)
+    dataset = pd.read_csv('../Data/shapes dataset v2.csv', sep=',', skipinitialspace=True, na_values=['#NAME?'])
+    dataset = remove_disks(dataset, outliers + low_mass)
 
     xvars = ['MSTAR', 'LSTAR', 'LOGLACC', 'INCL', 'N1330'] + add_xvars
     yvars = ['V1_FLUX', 'V1H_FLUX', 'V2_FLUX', 'I13_FLUX'] + add_yvars
