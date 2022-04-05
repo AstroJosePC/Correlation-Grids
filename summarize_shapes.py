@@ -81,7 +81,8 @@ def main(force=False):
     dataset = pd.read_csv('Data/shapes dataset v2.csv', sep=',', skipinitialspace=True, na_values=['#NAME?'])
     dataset = remove_disks(dataset, outliers + low_mass)
 
-    xvars = ['MSTAR', 'LSTAR', 'LOGLACC', 'INCL', 'N1330', 'TEFF', 'FW10']
+    xvars = ['N1330']
+    # xvars = ['MSTAR', 'LSTAR', 'LOGLACC', 'INCL', 'N1330', 'TEFF', 'FW10']
     yvars = ['V1_FLUX', 'V1H_FLUX', 'V2_FLUX', 'I13_FLUX', 'FW10']
 
     delta_map = flux_prep(dataset, y_vars=yvars, log_vars=log_vars, labels_map=labels_map, correction_col='W2_JY')
@@ -211,8 +212,8 @@ def main(force=False):
             sigma_bounds = min(*bounds['sigma']), max(bounds['sigma'])
             corr_bounds = min(*bounds['corr']), max(bounds['corr'])
 
-            ax2.set_xlim(corr_bounds[0] if corr_bounds[0] > -0.98 else 1,
-                         corr_bounds[1] if corr_bounds[1] < 0.98 else 1)
+            ax2.set_xlim(corr_bounds[0] if corr_bounds[0] > -0.96 else -1,
+                         corr_bounds[1] if corr_bounds[1] < 0.96 else 1)
             ax2.set(yticklabels=[], yticks=[])
 
             ax2.set_xlabel(r'Correlation, $\rho$')
@@ -234,4 +235,4 @@ def main(force=False):
 
 
 if __name__ == '__main__':
-    main(False)
+    main(True)
