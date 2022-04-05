@@ -43,6 +43,9 @@ def nsq_grid(dataset: Union[pd.DataFrame, str], x_vars: list, y_vars: list, log_
         dataset = get_data(dataset)
     elif copy:
         dataset = dataset.copy()
+    if log_vars is None:
+        log_vars = []
+
     all_vars = x_vars + y_vars
     y_vars = y_vars[::-1]
     assert len(set(all_vars) - set(dataset.columns)) == 0, 'A column included in x_vars or y_vars is not in the dataset'
