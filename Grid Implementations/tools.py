@@ -50,7 +50,7 @@ def plotter_wrapper(func, **kws):
             # add disk labels
             add_labels(ax, kwargs, plotter)
 
-        if plotter.ydelta is not None:
+        if plotter.ydelta is not None and any(plotter.ydelta == 0):
             # Add detections info text
             add_detections(ax, color, plotter, x, y)
 
